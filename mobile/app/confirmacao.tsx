@@ -7,6 +7,20 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { styles } from './(tabs)/style';
 import { Logo } from '../components/logo';
 
+const USER_CRED_KEY = 'userCredentials';
+const getSavedKey = (user: string) => {
+  const sanitized = (user || 'default').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `savedPurchases${sanitized}`;
+};
+const getActiveListKey = (user: string) => {
+  const sanitized = (user || 'default').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `activeList${sanitized}`;
+};
+const formatDecimal = (val: string) => {
+  if (!val) return '0.00';
+  const num = parseFloat(val.replace(',', '.'));
+  return isNaN(num) ? '0.00' : num.toFixed(2);
+};
 const STORAGE_KEY = 'shoppingList';
 
 // Habilita animações de layout no Android
@@ -145,7 +159,7 @@ const NotPurchasedModal = ({ visible, items, onClose, onRestore }: {
                 <View style={styles.itemContent}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.itemText, { color: '#E65100' }]}>{item.name}</Text>
-                    <Text style={{ fontSize: 12, color: '#666' }}>Qtd: {item.quantidade}</Text>
+                    <Text style={{ fontSize: 12, color: '#666' }}>Qtd: {formatDecimal(item.quantidade)}</Text>
                   </View>
                   <TouchableOpacity 
                     onPress={() => onRestore(item)}
@@ -183,9 +197,16 @@ export default function ConfirmacaoScreen() {
     remainingItems: number;
   } | null>(null);
 
+  const [isSaveModalVisible, setIsSaveModalVisible] = useState(false);
+  const [saveName, setSaveName] = useState('');
+
   useEffect(() => {
     const loadItems = async () => {
-      const stored = await SecureStore.getItemAsync(STORAGE_KEY);
+      const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+      const user = creds ? JSON.parse(creds).u : 'admin';
+      const activeKey = getActiveListKey(user);
+
+      const stored = await SecureStore.getItemAsync(activeKey);
       if (stored) {
         const parsedItems: Item[] = JSON.parse(stored).map((item: Item) => ({
           ...item,
@@ -207,7 +228,10 @@ export default function ConfirmacaoScreen() {
   useEffect(() => {
     const saveItems = async () => {
       if (shoppingList.length > 0) {
-        await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(shoppingList));
+        const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+        const user = creds ? JSON.parse(creds).u : 'admin';
+        const activeKey = getActiveListKey(user);
+        await SecureStore.setItemAsync(activeKey, JSON.stringify(shoppingList));
       }
     };
     saveItems();
@@ -255,7 +279,7 @@ export default function ConfirmacaoScreen() {
   };
 
   const saveEdit = () => {
-    const update = (list: any[]) => list.map(i => i.id === editingItem.id ? { ...i, quantidade: newQuantity } : i);
+    const update = (list: any[]) => list.map(i => i.id === editingItem.id ? { ...i, quantidade: formatDecimal(newQuantity) } : i);
     setShoppingList(update);
     setModalVisible(false);
   };
@@ -273,6 +297,44 @@ export default function ConfirmacaoScreen() {
     </TouchableOpacity>
   );
 
+  const handleSavePurchase = async () => {
+    if (!saveName.trim()) {
+      Alert.alert('Erro', 'Dê um nome para esta compra');
+      return;
+    }
+
+    try {
+      const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+      const user = creds ? JSON.parse(creds).u : 'admin';
+      const key = getSavedKey(user);
+      
+      const saved = await SecureStore.getItemAsync(key);
+      let savedLists = saved ? JSON.parse(saved) : [];
+
+      if (savedLists.some((p: any) => p.name.toLowerCase() === saveName.trim().toLowerCase())) {
+        Alert.alert('Erro', 'Já existe uma compra salva com este nome');
+        return;
+      }
+
+      if (savedLists.length >= 5) {
+        Alert.alert('Limite atingido', 'Você já possui 5 compras salvas.');
+        setIsSaveModalVisible(false);
+        setShowSummaryModal(true);
+        return;
+      }
+
+      // Salvamos o estado original dos itens para que possam ser reusados como "pendentes" no futuro
+      const itemsToSave = shoppingList.map(i => ({ ...i, status: 'pending', isConfirmed: false, isConfirming: false }));
+      savedLists.push({ name: saveName.trim(), items: itemsToSave });
+      
+      await SecureStore.setItemAsync(key, JSON.stringify(savedLists));
+      setIsSaveModalVisible(false);
+      setShowSummaryModal(true);
+    } catch (e) {
+      Alert.alert('Erro', 'Não foi possível salvar a compra');
+    }
+  };
+
   const handleFinishShopping = () => {
     const confirmed = shoppingList.filter(item => item.status === 'confirmed').length;
     const notPurchased = shoppingList.filter(item => item.status === 'not_purchased').length;
@@ -285,7 +347,15 @@ export default function ConfirmacaoScreen() {
         notPurchasedItemsCount: notPurchased,
         remainingItems: remaining,
       });
-      setShowSummaryModal(true);
+      
+      Alert.alert(
+        'Salvar Lista?',
+        'Deseja salvar esta lista de compras para usar novamente no futuro?',
+        [
+          { text: 'Não', onPress: () => setShowSummaryModal(true) },
+          { text: 'Sim, Salvar', onPress: () => setIsSaveModalVisible(true) }
+        ]
+      );
     };
 
     if (confirmed === 0) {
@@ -383,7 +453,7 @@ export default function ConfirmacaoScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.itemText, (item.status === 'confirmed' || item.isConfirming) && { color: '#155724', fontWeight: item.status === 'confirmed' ? 'bold' : 'normal' }]}>{item.name}</Text>
                     <View style={{ marginTop: 4 }}>
-                      <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }, (item.status === 'confirmed' || item.isConfirming) && { color: '#155724' }]}>Qtd: {item.quantidade}</Text>
+                      <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }, (item.status === 'confirmed' || item.isConfirming) && { color: '#155724' }]}>Qtd: {formatDecimal(item.quantidade)}</Text>
                     </View>
                     {sortBy !== 'group' && <Text style={{ fontSize: 12, color: '#666' }}>{item.grupo}</Text>}
                   </View>
@@ -444,11 +514,47 @@ export default function ConfirmacaoScreen() {
         </View>
       </Modal>
 
+      <Modal visible={isSaveModalVisible} transparent animationType="slide">
+        <View style={localStyles.modalOverlay}>
+          <View style={localStyles.modalContent}>
+            <Text style={[styles.title, { fontSize: 22, color: '#1B5E20' }]}>Salvar esta Compra</Text>
+            <TextInput
+              style={[styles.input, { width: '100%' }]}
+              value={saveName}
+              onChangeText={setSaveName}
+              placeholder="Ex: Compras Semanal"
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
+              <TouchableOpacity 
+                style={[styles.addBtn, { flex: 1, backgroundColor: '#ccc' }]} 
+                onPress={() => { setIsSaveModalVisible(false); setShowSummaryModal(true); }}
+              >
+                <Text style={styles.addBtnText}>Pular</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50' }]} 
+                onPress={handleSavePurchase}
+              >
+                <Text style={styles.addBtnText}>Gravar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <SummaryModal
         visible={showSummaryModal}
         summary={summaryData}
         onClose={() => setShowSummaryModal(false)}
-        onGoHome={async () => { await SecureStore.deleteItemAsync(STORAGE_KEY); setShowSummaryModal(false); router.replace('/'); }}
+        onGoHome={async () => { 
+          const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+          const user = creds ? JSON.parse(creds).u : 'admin';
+          const activeKey = getActiveListKey(user);
+          await SecureStore.deleteItemAsync(activeKey); 
+          setShowSummaryModal(false); 
+          router.replace('/'); 
+        }}
       />
 
       <NotPurchasedModal

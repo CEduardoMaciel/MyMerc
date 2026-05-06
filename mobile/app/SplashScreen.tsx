@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing, Dimensions, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing, Dimensions, TextInput, Alert, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 
 const { width, height } = Dimensions.get('window');
 const AUTH_KEY = 'isLoggedIn';
-const USER_CRED_KEY = 'user_credentials';
-const ADMIN_FALLBACK_PASSWORD_KEY = 'admin_fallback_password'; // Nova chave para a senha do admin
+const USER_CRED_KEY = 'userCredentials';
+const USER_CRED_KEY_OLD = 'user_credentials'; // Chave antiga para credenciais do usuário
+const PROFILES_KEY = 'myMercProfilesList';
 
 export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const cartScale = useRef(new Animated.Value(0.1)).current;
@@ -34,20 +35,34 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
 
   // Estado do Login
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [profiles, setProfiles] = useState<string[]>([]);
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+
+  const loadProfiles = useCallback(async () => {
+    try {
+      const stored = await SecureStore.getItemAsync(PROFILES_KEY);
+      let list: string[] = stored ? JSON.parse(stored) : [];
+      
+      // Migração: Se não houver lista mas houver um usuário antigo no USER_CRED_KEY
+      const oldCreds = await SecureStore.getItemAsync(USER_CRED_KEY);
+      if (list.length === 0) {
+        if (oldCreds) {
+          const { u } = JSON.parse(oldCreds);
+          list = [u];
+        } else {
+          list = ['Admin']; // Perfil padrão inicial
+        }
+        await SecureStore.setItemAsync(PROFILES_KEY, JSON.stringify(list));
+      }
+      
+      setProfiles(list);
+    } catch (error) {
+      setProfiles(['Admin']);
+    }
+  }, []);
 
   useEffect(() => {
-    // Função para configurar a senha do admin no SecureStore na primeira execução
-    const setupAdminPassword = async () => {
-      const storedAdminPass = await SecureStore.getItemAsync(ADMIN_FALLBACK_PASSWORD_KEY);
-      if (!storedAdminPass) {
-        // Armazena a senha do admin criptografada se ainda não estiver lá
-        await SecureStore.setItemAsync(ADMIN_FALLBACK_PASSWORD_KEY, '!@Legiao160210');
-      }
-    };
-    setupAdminPassword();
+    loadProfiles();
 
     // Sequência de Animação
     Animated.sequence([
@@ -135,85 +150,66 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
     ]).start();
   }, []);
 
-  const handleLogin = async () => {
+  const handleSelectProfile = async (selectedUser: string) => {
     try {
-      const inputUser = username.trim().toLowerCase();
-      const storedCreds = await SecureStore.getItemAsync(USER_CRED_KEY);
-      const adminPass = await SecureStore.getItemAsync(ADMIN_FALLBACK_PASSWORD_KEY);
-      let isValid = false;
-
-      // 1. Verifica se é o Admin (usando a senha do SecureStore)
-      if (inputUser === 'admin') {
-        if (password === (adminPass || '!@Legiao160210')) {
-          isValid = true;
-        }
-      }
-
-      // 2. Se não for admin ou se o admin falhou, verifica o usuário cadastrado
-      if (!isValid && storedCreds) {
-        const { u, p } = JSON.parse(storedCreds);
-        if (inputUser === u && password === p) {
-          isValid = true;
-        }
-      }
-
-      if (!isValid) {
-        Alert.alert('Erro', 'Usuário ou senha incorretos');
-        return;
-      }
-
-      // Efeito visual de sucesso antes de transicionar para a Home
+      // Salva qual é o perfil atual para o index.tsx ler
+      await SecureStore.setItemAsync(USER_CRED_KEY, JSON.stringify({ u: selectedUser }));
+      
+      // Efeito visual de sucesso
       Animated.parallel([
         Animated.timing(loginOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
         Animated.timing(logoScale, { toValue: 1.3, duration: 400, useNativeDriver: true }),
         Animated.timing(logoOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
       ]).start(async () => {
-        try {
-          await SecureStore.setItemAsync(AUTH_KEY, 'true');
-          onFinish();
-        } catch (error) {
-          console.error('Erro ao salvar login:', error);
-          onFinish();
-        }
+        await SecureStore.setItemAsync(AUTH_KEY, 'true');
+        onFinish();
       });
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao processar login');
+      Alert.alert('Erro', 'Falha ao selecionar perfil');
     }
   };
 
-  const handleRegister = async () => {
+  const handleCreateProfile = async () => {
     const lowerUsername = username.trim().toLowerCase();
-    if (!lowerUsername || !password.trim()) {
-      Alert.alert('Atenção', 'Preencha usuário e senha para cadastrar');
+    if (!lowerUsername) {
+      Alert.alert('Atenção', 'Digite um nome para o perfil');
       return;
     }
+
     try {
-      // Verifica se o usuário já existe no armazenamento local
-      const storedCreds = await SecureStore.getItemAsync(USER_CRED_KEY);
-      if (storedCreds) {
-        const { u } = JSON.parse(storedCreds);
-        if (u === lowerUsername) {
-          Alert.alert('Atenção', 'Este usuário já está cadastrado neste dispositivo.');
-          return;
-        }
+      if (profiles.includes(lowerUsername)) {
+        Alert.alert('Atenção', 'Este perfil já existe.');
+        return;
       }
 
-      const creds = JSON.stringify({ u: lowerUsername, p: password });
-      await SecureStore.setItemAsync(USER_CRED_KEY, creds);
+      const newList = [...profiles, lowerUsername];
+      await SecureStore.setItemAsync(PROFILES_KEY, JSON.stringify(newList));
+      setProfiles(newList);
       
-      Alert.alert('Sucesso', 'Usuário cadastrado com segurança!', [{ 
+      Alert.alert('Sucesso', 'Perfil criado!', [{ 
         text: 'OK', 
         onPress: () => {
-          setIsRegistering(false); // Volta para tela de login
-          setUsername('');         // Limpa usuário
-          setPassword('');         // Limpa senha
-          setTimeout(() => userInputRef.current?.focus(), 100); // Foca no campo de usuário
+          setIsCreatingProfile(false);
+          setUsername('');
         } 
       }]);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar as credenciais');
+      Alert.alert('Erro', 'Não foi possível salvar o perfil');
     }
   };
+
+  const renderProfileItem = ({ item }: { item: string }) => (
+    <TouchableOpacity 
+      style={localStyles.profileCard} 
+      onPress={() => handleSelectProfile(item)}
+    >
+      <View style={localStyles.profileIcon}>
+        <MaterialIcons name="person" size={24} color="#4CAF50" />
+      </View>
+      <Text style={localStyles.profileName}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
+      <MaterialIcons name="chevron-right" size={24} color="#ccc" />
+    </TouchableOpacity>
+  );
 
   return (
     <KeyboardAvoidingView 
@@ -221,14 +217,12 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={localStyles.container}>
-        {/* Estrada (Linhas de perspectiva) */}
         <Animated.View style={[localStyles.roadContainer, { opacity: roadOpacity }]}>
           <View style={localStyles.roadLineLeft} />
           <View style={localStyles.roadLineRight} />
         </Animated.View>
 
         <Animated.View style={[localStyles.contentGroup, { transform: [{ translateY: logoTranslateY }] }]}>
-          {/* Mão e Produto (Animação de colocar item) */}
           <Animated.View style={{
             position: 'absolute',
             top: 0,
@@ -249,7 +243,6 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             <MaterialIcons name="pan-tool" size={40} color="#f1c27d" />
           </Animated.View>
 
-          {/* Carrinho - Agora fica atrás no JSX ou com zIndex menor */}
           <Animated.View style={{
             transform: [
               { translateY: cartMove }, 
@@ -261,7 +254,6 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             <MaterialIcons name="shopping-cart" size={40} color="#4CAF50" />
           </Animated.View>
 
-        {/* Logo MyMerc - Posicionado para cobrir o carrinho */}
           <Animated.View style={{ 
             opacity: logoOpacity, 
             transform: [{ scale: logoScale }],
@@ -274,7 +266,6 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
           </Animated.View>
         </Animated.View>
 
-        {/* Poeira/Partículas */}
         <Animated.View style={[localStyles.particlesContainer, { opacity: particlesOpacity }]}>
           {particles.map((p, i) => (
             <Animated.View 
@@ -284,62 +275,52 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
           ))}
         </Animated.View>
 
-        {/* Formulário de Login */}
         <Animated.View style={{ 
           opacity: loginOpacity, 
           transform: [{ translateY: loginTranslateY }],
           width: '85%', 
           position: 'absolute',
-          bottom: height * 0.15,
+          bottom: height * 0.10,
+          maxHeight: height * 0.4,
           zIndex: 20 
         }}>
-          <TextInput
-            ref={userInputRef}
-            style={localStyles.input}
-            placeholder="Usuário"
-            value={username}
-            placeholderTextColor="#999"
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <View style={localStyles.inputContainer}>
-            <TextInput
-              style={[localStyles.input, { flex: 1, width: 'auto', marginBottom: 0, borderWidth: 0, backgroundColor: 'transparent' }]}
-              placeholder="Senha"
-              value={password}
-              placeholderTextColor="#999"
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-            />
-            <TouchableOpacity 
-              onPress={() => setShowPassword(!showPassword)}
-              style={{ paddingRight: 15 }}
-            >
-              <MaterialIcons 
-                name={showPassword ? "visibility" : "visibility-off"} 
-                size={22} 
-                color="#999" 
+          {isCreatingProfile ? (
+            <View>
+              <Text style={localStyles.sectionTitle}>Novo Perfil</Text>
+              <TextInput
+                ref={userInputRef}
+                style={localStyles.input}
+                placeholder="Nome do Perfil"
+                value={username}
+                placeholderTextColor="#999"
+                onChangeText={setUsername}
+                autoFocus
               />
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity 
-            style={localStyles.enterBtn} 
-            onPress={isRegistering ? handleRegister : handleLogin}
-          >
-            <Text style={localStyles.enterBtnText}>
-              {isRegistering ? 'Cadastrar' : 'Entrar'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            onPress={() => setIsRegistering(!isRegistering)}
-            style={{ marginTop: 15, alignItems: 'center' }}
-          >
-            <Text style={{ color: '#4CAF50', fontWeight: '600' }}>
-              {isRegistering ? 'Já tem conta? Faça Login' : 'Não tem conta? Cadastre-se'}
-            </Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={localStyles.enterBtn} onPress={handleCreateProfile}>
+                <Text style={localStyles.enterBtnText}>Criar Perfil</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setIsCreatingProfile(false)} style={{ marginTop: 15, alignItems: 'center' }}>
+                <Text style={{ color: '#666' }}>Voltar</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ flex: 1 }}>
+              <Text style={localStyles.sectionTitle}>Escolha seu Perfil</Text>
+              <FlatList
+                data={profiles}
+                renderItem={renderProfileItem}
+                keyExtractor={item => item}
+                style={{ marginBottom: 15 }}
+              />
+            <TouchableOpacity 
+                onPress={() => setIsCreatingProfile(true)}
+                style={localStyles.addProfileBtn}
+            >
+                <MaterialIcons name="add-circle-outline" size={20} color="#4CAF50" />
+                <Text style={localStyles.addProfileText}>Novo Perfil</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
       </View>
     </KeyboardAvoidingView>
@@ -442,5 +423,49 @@ const localStyles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold'
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1B5E20',
+    marginBottom: 15,
+    textAlign: 'center'
+  },
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#eee'
+  },
+  profileIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12
+  },
+  profileName: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '600'
+  },
+  addProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    gap: 5
+  },
+  addProfileText: {
+    color: '#4CAF50',
+    fontWeight: 'bold',
+    fontSize: 16
   }
 });

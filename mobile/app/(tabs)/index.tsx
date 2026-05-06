@@ -21,7 +21,24 @@ interface Item {
 
 const STORAGE_KEY = 'shoppingList';
 const AUTH_KEY = 'isLoggedIn';
-const USER_CRED_KEY = 'user_credentials';
+const USER_CRED_KEY = 'userCredentials';
+const getSavedKey = (user: string) => {
+  const sanitized = (user || 'default').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `savedPurchases${sanitized}`;
+};
+const getActiveListKey = (user: string) => {
+  const sanitized = (user || 'default').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `activeList${sanitized}`;
+};
+const formatDecimal = (val: string) => {
+  if (!val) return '0.00';
+  const num = parseFloat(val.replace(',', '.'));
+  return isNaN(num) ? '0.00' : num.toFixed(2);
+};
+
+const getSavedKeyOld = (user: string) => {
+  return `saved_purchases_${user.toLowerCase()}`; // Formato da chave antiga (sem sanitização)
+};
 
 const groupIcons: Record<Item['grupo'], keyof typeof MaterialIcons.glyphMap> = {
   Alimentício: 'restaurant',
@@ -44,10 +61,19 @@ export default function HomeScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [userName, setUserName] = useState('');
+  const isReadyToSave = useRef(false);
 
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [editQuantity, setEditQuantity] = useState('');
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+
+  const [isSavedListsModalVisible, setIsSavedListsModalVisible] = useState(false);
+  const [isSaveModalVisible, setIsSaveModalVisible] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [savedPurchases, setSavedPurchases] = useState<{name: string, items: Item[]}[]>([]);
+
+  const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
+  const [previewData, setPreviewData] = useState<{name: string, items: Item[]} | null>(null);
 
   const router = useRouter();
   const inputRef = useRef<TextInput>(null);
@@ -60,12 +86,40 @@ export default function HomeScreen() {
         
         if (auth === 'true') {
           const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+          let uKey = 'Admin';
           if (creds) {
             const { u } = JSON.parse(creds);
+            uKey = u;
             setUserName(u.charAt(0).toUpperCase() + u.slice(1));
+            
+            // --- Lógica de Migração para Listas Salvas ---
+            const oldSavedKey = getSavedKeyOld(u);
+            const oldSaved = await SecureStore.getItemAsync(oldSavedKey);
+            if (oldSaved) {
+              const newSavedKey = getSavedKey(u);
+              await SecureStore.setItemAsync(newSavedKey, oldSaved);
+              await SecureStore.deleteItemAsync(oldSavedKey);
+              console.log(`Migrated saved purchases for user ${u} from old key to new key.`);
+              // Após a migração, carrega os dados da nova chave
+              setSavedPurchases(JSON.parse(oldSaved));
+            } else {
+              // Se não houver chave antiga, tenta carregar da nova chave
+              const saved = await SecureStore.getItemAsync(getSavedKey(u));
+              if (saved) {
+                setSavedPurchases(JSON.parse(saved));
+              }
+            }
           } else {
             setUserName('Admin');
           }
+
+          // Carrega itens ativos para este perfil específico
+          const activeKey = getActiveListKey(uKey);
+          const storedItems = await SecureStore.getItemAsync(activeKey);
+          if (storedItems) {
+            setItems(JSON.parse(storedItems));
+          }
+          isReadyToSave.current = true;
         }
       } catch (error) {
         console.error('Erro ao carregar estado de login:', error);
@@ -74,31 +128,21 @@ export default function HomeScreen() {
       }
     };
 
-    const loadItems = async () => {
-      try {
-        const storedItems = await SecureStore.getItemAsync(STORAGE_KEY);
-        if (storedItems) {
-          setItems(JSON.parse(storedItems));
-        }
-      } catch (error) {
-        console.error('Erro ao carregar lista:', error);
-      }
-    };
-
     loadAuth();
-    loadItems();
   }, []);
 
   useEffect(() => {
     const saveItems = async () => {
+      if (!isLoggedIn || !userName || !isReadyToSave.current) return;
       try {
-        await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(items));
+        const activeKey = getActiveListKey(userName);
+        await SecureStore.setItemAsync(activeKey, JSON.stringify(items));
       } catch (error) {
         console.error('Erro ao salvar lista:', error);
       }
     };
     saveItems();
-  }, [items]);
+  }, [items, userName, isLoggedIn]);
 
   const handleLoginSuccess = async () => {
     try {
@@ -108,8 +152,17 @@ export default function HomeScreen() {
       if (creds) {
         const { u } = JSON.parse(creds);
         setUserName(u.charAt(0).toUpperCase() + u.slice(1));
+        
+        // Carrega a lista do usuário ao logar
+        const activeKey = getActiveListKey(u);
+        const storedItems = await SecureStore.getItemAsync(activeKey);
+        if (storedItems) {
+          setItems(JSON.parse(storedItems));
+        }
+        isReadyToSave.current = true;
       } else {
         setUserName('Admin');
+        isReadyToSave.current = true;
       }
     } catch (error) {
       console.error('Erro ao salvar login:', error);
@@ -118,7 +171,17 @@ export default function HomeScreen() {
 
   const handleLogout = async () => {
     try {
+      const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+      if (creds) {
+        const { u } = JSON.parse(creds);
+        await SecureStore.deleteItemAsync(getActiveListKey(u));
+      }
+      
+      isReadyToSave.current = false;
       await SecureStore.deleteItemAsync(AUTH_KEY);
+      setItems([]); // Limpa os itens do estado local
+      setSavedPurchases([]); // Limpa as listas salvas da visão atual
+      setUserName(''); // Limpa o nome do usuário
       setIsLoggedIn(false);
     } catch (error) {
       console.error('Erro ao deslogar:', error);
@@ -155,7 +218,7 @@ export default function HomeScreen() {
     const newItem: Item = {
       id: `${Date.now()}-${Math.random()}`,
       name: inputValue,
-      quantidade: quantidade.trim(),
+      quantidade: formatDecimal(quantidade),
       grupo,
     };
 
@@ -188,9 +251,66 @@ export default function HomeScreen() {
 
   const handleSaveEdit = () => {
     if (!editingItem) return;
-    setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, quantidade: editQuantity } : i));
+    setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, quantidade: formatDecimal(editQuantity) } : i));
     setIsEditModalVisible(false);
     setEditingItem(null);
+  };
+
+  const handleSaveCurrentList = async () => {
+    if (items.length === 0) return;
+    if (!saveName.trim()) {
+      Alert.alert('Erro', 'Dê um nome para esta compra');
+      return;
+    }
+
+    if (savedPurchases.some(p => p.name.toLowerCase() === saveName.trim().toLowerCase())) {
+      Alert.alert('Erro', 'Já existe uma compra salva com este nome');
+      return;
+    }
+
+    if (savedPurchases.length >= 5) {
+      Alert.alert('Limite atingido', 'Você já possui 5 compras salvas. Exclua uma para salvar esta.');
+      return;
+    }
+
+    const newList = [...savedPurchases, { name: saveName.trim(), items }];
+    const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+    const user = creds ? JSON.parse(creds).u : 'admin';
+    
+    await SecureStore.setItemAsync(getSavedKey(user), JSON.stringify(newList));
+    setSavedPurchases(newList);
+    setIsSaveModalVisible(false);
+    setSaveName('');
+    Alert.alert('Sucesso', 'Lista salva com sucesso!');
+  };
+
+  const handleLoadSavedList = (savedItems: Item[]) => {
+    Alert.alert('Carregar Lista', 'Isso substituirá sua lista atual. Continuar?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Sim', onPress: () => {
+        setItems(savedItems);
+        setIsPreviewModalVisible(false);
+        setIsSavedListsModalVisible(false);
+      }}
+    ]);
+  };
+
+  const handleOpenPreview = (list: {name: string, items: Item[]}) => {
+    setPreviewData(list);
+    setIsPreviewModalVisible(true);
+  };
+
+  const handleDeleteSavedList = async (listName: string) => {
+    Alert.alert('Excluir Lista Salva', `Tem certeza que deseja excluir "${listName}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: async () => {
+        const newList = savedPurchases.filter(p => p.name !== listName);
+        const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+        const user = creds ? JSON.parse(creds).u : 'admin';
+        await SecureStore.setItemAsync(getSavedKey(user), JSON.stringify(newList));
+        setSavedPurchases(newList);
+      }}
+    ]);
   };
 
   const handleDeleteAll = () => {
@@ -254,9 +374,22 @@ export default function HomeScreen() {
         <Logo />
       </View>
 
-      <Text style={{ fontSize: 20, fontWeight: '900', color: '#1B5E20', marginBottom: 2 }}>
-        Olá, {userName}!
-      </Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+        <Text style={{ fontSize: 20, fontWeight: '900', color: '#1B5E20' }}>
+          Olá, {userName}!
+        </Text>
+        <TouchableOpacity 
+          onPress={() => setIsSavedListsModalVisible(true)}
+          style={{ padding: 8, backgroundColor: '#E8F5E9', borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+        >
+          <MaterialIcons name="list-alt" size={24} color="#2E7D32" />
+          {savedPurchases.length > 0 && (
+            <View style={{ backgroundColor: '#F44336', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 }}>
+              <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{savedPurchases.length}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
 
       <View style={{ marginBottom: 20 }}>
         <Text style={{ color: '#666', marginBottom: 8 }}>O que vamos comprar hoje?</Text>
@@ -295,6 +428,7 @@ export default function HomeScreen() {
             placeholder="Quantidade"
             value={quantidade}
             onChangeText={setQuantidade}
+            keyboardType="numeric"
           />
           <TouchableOpacity style={[styles.addBtn, { backgroundColor: '#4CAF50' }]} onPress={handleAddItem}>
             <MaterialIcons name="add" size={28} color="#fff" />
@@ -360,7 +494,7 @@ export default function HomeScreen() {
                   <View>
                     <Text style={styles.itemText}>{item.name}</Text>
                     <View style={{ marginTop: 4 }}>
-                      <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }]}>Qtd: {item.quantidade}</Text>
+                      <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }]}>Qtd: {formatDecimal(item.quantidade)}</Text>
                     </View>
                   </View>
                 </View>
@@ -383,6 +517,12 @@ export default function HomeScreen() {
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
         <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: '#9e9e9e' }]} onPress={handleLogout}>
           <Text style={styles.addBtnText}>Sair</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.addBtn, { flex: 1, backgroundColor: '#FF9800' }, items.length === 0 && { backgroundColor: '#ccc' }]} 
+          onPress={() => items.length > 0 && setIsSaveModalVisible(true)}
+        >
+          <Text style={styles.addBtnText}>Salvar Lista</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50' }, items.length === 0 && { backgroundColor: '#ccc' }]} 
@@ -431,6 +571,119 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={isSaveModalVisible} transparent animationType="slide">
+        <View style={localStyles.modalOverlay}>
+          <View style={localStyles.modalContent}>
+            <Text style={[styles.title, { fontSize: 22, color: '#1B5E20' }]}>Salvar Lista Atual</Text>
+            <Text style={{ marginBottom: 15, textAlign: 'center' }}>Dê um nome para identificar esta compra futuramente.</Text>
+            <TextInput
+              style={[styles.input, { width: '100%' }]}
+              value={saveName}
+              onChangeText={setSaveName}
+              placeholder="Ex: Rancho do Mês"
+              autoFocus
+            />
+            <Text style={{ fontSize: 12, color: '#666', marginTop: 5 }}>
+              {savedPurchases.length}/5 listas salvas
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
+              <TouchableOpacity 
+                style={[styles.addBtn, { flex: 1, backgroundColor: '#ccc' }]} 
+                onPress={() => setIsSaveModalVisible(false)}
+              >
+                <Text style={styles.addBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.addBtn, { flex: 1, backgroundColor: '#FF9800' }]} 
+                onPress={handleSaveCurrentList}
+              >
+                <Text style={styles.addBtnText}>Gravar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={isSavedListsModalVisible} transparent animationType="slide">
+        <View style={localStyles.modalOverlay}>
+          <View style={[localStyles.modalContent, { maxHeight: '70%', width: '90%' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 15, alignItems: 'center' }}>
+              <Text style={{ fontSize: 22, fontWeight: '900', color: '#1B5E20' }}>Listas Salvas</Text>
+              <TouchableOpacity onPress={() => setIsSavedListsModalVisible(false)} style={{ padding: 5 }}>
+                <MaterialIcons name="close" size={28} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={savedPurchases}
+              keyExtractor={p => p.name}
+              style={{ width: '100%' }}
+              renderItem={({ item }) => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 }}>
+                  <TouchableOpacity 
+                    onPress={() => handleOpenPreview(item)}
+                    style={{ flex: 1, backgroundColor: '#F1F8E9', padding: 15, borderRadius: 10, borderWidth: 1, borderColor: '#C8E6C9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                  >
+                    <Text style={{ fontSize: 16, color: '#2E7D32', fontWeight: 'bold' }}>{item.name}</Text>
+                    <Text style={{ fontSize: 12, color: '#666' }}>{item.items.length} itens</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => handleDeleteSavedList(item.name)}
+                    style={{ padding: 10 }}
+                  >
+                    <MaterialIcons name="delete-outline" size={24} color="#F44336" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20, color: '#999' }}>Nenhuma lista salva ainda.</Text>}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={isPreviewModalVisible} transparent animationType="fade">
+        <View style={localStyles.modalOverlay}>
+          <View style={[localStyles.modalContent, { maxHeight: '60%', width: '80%', padding: 15 }]}>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1B5E20', marginBottom: 10, textAlign: 'center' }}>
+              {previewData?.name}
+            </Text>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#eee', marginBottom: 5 }}>
+              <Text style={{ fontWeight: 'bold', color: '#1B5E20', flex: 1 }}>Produtos</Text>
+              <Text style={{ fontWeight: 'bold', color: '#1B5E20' }}>Quantidades</Text>
+            </View>
+
+            <FlatList
+              data={previewData?.items}
+              keyExtractor={item => item.id}
+              style={{ width: '100%', marginBottom: 15 }}
+              renderItem={({ item }) => (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+                  <Text style={{ color: '#333', fontSize: 14, flex: 1 }}>{item.name}</Text>
+                  <Text style={{ color: '#666', fontSize: 14, fontWeight: 'bold' }}>{formatDecimal(item.quantidade)}</Text>
+                </View>
+              )}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity 
+                style={[styles.addBtn, { flex: 1, backgroundColor: '#ccc', height: 45 }]} 
+                onPress={() => setIsPreviewModalVisible(false)}
+              >
+                <Text style={styles.addBtnText}>Voltar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50', height: 45 }]} 
+                onPress={() => previewData && handleLoadSavedList(previewData.items)}
+              >
+                <Text style={styles.addBtnText}>Usar Lista</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
