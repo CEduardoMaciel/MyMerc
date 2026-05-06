@@ -53,7 +53,7 @@ const ConfirmationOverlay = ({ isConfirmed, isConfirming }: { isConfirmed?: bool
         bottom: 0,
         fontSize: 45,
         fontWeight: 'bold',
-        color: 'rgba(0, 0, 0, 0.05)',
+        color: 'rgba(27, 94, 32, 0.1)', // Verde escuro com 10% de opacidade para melhor visibilidade
         textAlign: 'center',
         textAlignVertical: 'center',
         opacity: anim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 1] }),
@@ -245,28 +245,50 @@ export default function ConfirmacaoScreen() {
       <FlatList
         data={sortedActiveItems}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={[styles.itemContainer, (item.status === 'confirmed' || item.isConfirming) && { backgroundColor: '#d4edda', borderColor: '#c3e6cb' }]}>
-            <ConfirmationOverlay isConfirmed={item.status === 'confirmed'} isConfirming={item.isConfirming} />
-            <View style={styles.itemContent}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.itemText, (item.status === 'confirmed' || item.isConfirming) && { color: '#155724', fontWeight: item.status === 'confirmed' ? 'bold' : 'normal' }]}>{item.name} ({item.quantidade})</Text>
-                <Text style={{ fontSize: 12, color: '#666' }}>{item.grupo}</Text>
-              </View>
-              <View style={{ flexDirection: 'row' }}>
-                {item.status === 'confirmed' || item.isConfirming ? (
-                  <ActionButton icon="remove" color="#F44336" onPress={() => handleCancelConfirm(item.id)} />
-                ) : (
-                  <>
-                    <ActionButton icon="check" color="#4CAF50" onPress={() => handleConfirmItem(item.id)} />
-                    <ActionButton icon="edit" color="#2196F3" onPress={() => openEditModal(item)} size={20} />
-                    <ActionButton icon="warning" color="#FF9800" onPress={() => handleMoveToNotPurchased(item)} size={20} />
-                  </>
-                )}
+        renderItem={({ item, index }) => {
+          const showHeader = sortBy === 'group' && (index === 0 || sortedActiveItems[index - 1].grupo !== item.grupo);
+          return (
+            <View>
+              {showHeader && (
+                <View style={{
+                  backgroundColor: '#f1f8e9',
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  marginTop: 15,
+                  marginBottom: 8,
+                  borderRadius: 6,
+                  borderLeftWidth: 5,
+                  borderLeftColor: '#1B5E20'
+                }}>
+                  <Text style={{ fontWeight: '900', color: '#1B5E20', textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>{item.grupo}</Text>
+                </View>
+              )}
+              <View style={[styles.itemContainer, (item.status === 'confirmed' || item.isConfirming) && { backgroundColor: '#d4edda', borderColor: '#c3e6cb' }]}>
+                <ConfirmationOverlay isConfirmed={item.status === 'confirmed'} isConfirming={item.isConfirming} />
+                <View style={styles.itemContent}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.itemText, (item.status === 'confirmed' || item.isConfirming) && { color: '#155724', fontWeight: item.status === 'confirmed' ? 'bold' : 'normal' }]}>{item.name}</Text>
+                    <View style={{ marginTop: 4 }}>
+                      <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }, (item.status === 'confirmed' || item.isConfirming) && { color: '#155724' }]}>Qtd: {item.quantidade}</Text>
+                    </View>
+                    {sortBy !== 'group' && <Text style={{ fontSize: 12, color: '#666' }}>{item.grupo}</Text>}
+                  </View>
+                  <View style={{ flexDirection: 'row' }}>
+                    {item.status === 'confirmed' || item.isConfirming ? (
+                      <ActionButton icon="remove" color="#F44336" onPress={() => handleCancelConfirm(item.id)} />
+                    ) : (
+                      <>
+                        <ActionButton icon="check" color="#4CAF50" onPress={() => handleConfirmItem(item.id)} />
+                        <ActionButton icon="edit" color="#2196F3" onPress={() => openEditModal(item)} size={20} />
+                        <ActionButton icon="warning" color="#FF9800" onPress={() => handleMoveToNotPurchased(item)} size={20} />
+                      </>
+                    )}
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
-        )}
+          );
+        }}
         ListEmptyComponent={<Text style={{ textAlign: 'center', marginVertical: 10 }}>Nenhum item pendente.</Text>}
       />
 
@@ -285,16 +307,38 @@ export default function ConfirmacaoScreen() {
           <FlatList
             data={sortedNotPurchasedItems}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={[styles.itemContainer, { opacity: 0.7 }]}>
-                <View style={styles.itemContent}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.itemText}>{item.name} ({item.quantidade})</Text>
+            renderItem={({ item, index }) => {
+              const showHeader = sortBy === 'group' && (index === 0 || sortedNotPurchasedItems[index - 1].grupo !== item.grupo);
+              return (
+                <View>
+                  {showHeader && (
+                    <View style={{
+                      backgroundColor: '#f1f8e9',
+                      paddingVertical: 6,
+                      paddingHorizontal: 12,
+                      marginTop: 15,
+                      marginBottom: 8,
+                      borderRadius: 6,
+                      borderLeftWidth: 5,
+                      borderLeftColor: '#1B5E20'
+                    }}>
+                      <Text style={{ fontWeight: '900', color: '#1B5E20', textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>{item.grupo}</Text>
+                    </View>
+                  )}
+                  <View style={[styles.itemContainer, { opacity: 0.7 }]}>
+                    <View style={styles.itemContent}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.itemText}>{item.name}</Text>
+                        <View style={{ marginTop: 4 }}>
+                          <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }]}>Qtd: {item.quantidade}</Text>
+                        </View>
+                      </View>
+                      <ActionButton icon="settings-backup-restore" color="#9E9E9E" onPress={() => handleMoveBack(item)} />
+                    </View>
                   </View>
-                  <ActionButton icon="settings-backup-restore" color="#9E9E9E" onPress={() => handleMoveBack(item)} />
                 </View>
-              </View>
-            )}
+              );
+            }}
           />
         </>
       )}

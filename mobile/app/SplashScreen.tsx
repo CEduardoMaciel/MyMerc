@@ -85,15 +85,20 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
       Animated.parallel([
         Animated.timing(particlesOpacity, { toValue: 1, duration: 100, useNativeDriver: true }),
         ...particles.map((p, i) => 
-          Animated.timing(p, {
-            toValue: { 
-              x: (i % 2 === 0 ? -1 : 1) * (Math.random() * 100 + 50), 
-              y: -Math.random() * 100 - 20 
-            },
-            duration: 800,
-            easing: Easing.out(Easing.exp),
-            useNativeDriver: true,
-          })
+          Animated.parallel([
+            Animated.timing(p.x, {
+              toValue: (i % 2 === 0 ? -1 : 1) * (Math.random() * 100 + 50),
+              duration: 800,
+              easing: Easing.out(Easing.exp),
+              useNativeDriver: true,
+            }),
+            Animated.timing(p.y, {
+              toValue: -Math.random() * 100 - 20,
+              duration: 800,
+              easing: Easing.out(Easing.exp),
+              useNativeDriver: true,
+            })
+          ])
         ),
         // 4. Poeira se transforma no Logo
         Animated.sequence([
@@ -145,7 +150,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
           transform: [{ translateY: productAnimY }],
           zIndex: 5
         }}>
-          <MaterialIcons name="inventory" size={24} color="#FF9800" />
+          <MaterialIcons name="archive" size={24} color="#FF9800" />
         </Animated.View>
         
         <Animated.View style={{
@@ -155,7 +160,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
           transform: [{ translateY: handAnimY }],
           zIndex: 6
         }}>
-          <MaterialIcons name="back-hand" size={40} color="#f1c27d" />
+          <MaterialIcons name="pan-tool" size={40} color="#f1c27d" />
         </Animated.View>
 
         {/* Carrinho - Agora fica atrás no JSX ou com zIndex menor */}

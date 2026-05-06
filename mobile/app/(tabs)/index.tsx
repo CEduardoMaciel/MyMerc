@@ -302,33 +302,45 @@ export default function HomeScreen() {
       <FlatList
         data={sortedItems}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.itemContainer}>
-            <View style={styles.itemContent}>
-              <View>
-                <Text style={styles.itemText}>{item.name}</Text>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                  <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }]}>Qtd: {item.quantidade}</Text>
-                  <View
-                    style={[
-                      styles.badge,
-                      { backgroundColor: item.grupo === 'Alimentício' ? '#4CAF50' : '#2196F3' },
-                    ]}>
-                    <Text style={styles.badgeText}>{item.grupo}</Text>
+        renderItem={({ item, index }) => {
+          const showHeader = sortBy === 'group' && (index === 0 || sortedItems[index - 1].grupo !== item.grupo);
+          return (
+            <View>
+              {showHeader && (
+                <View style={{
+                  backgroundColor: '#f1f8e9',
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  marginTop: 15,
+                  marginBottom: 8,
+                  borderRadius: 6,
+                  borderLeftWidth: 5,
+                  borderLeftColor: '#1B5E20'
+                }}>
+                <Text style={{ fontWeight: '900', color: '#1B5E20', textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>{item.grupo}</Text>
+                </View>
+              )}
+              <View style={styles.itemContainer}>
+                <View style={styles.itemContent}>
+                  <View>
+                    <Text style={styles.itemText}>{item.name}</Text>
+                    <View style={{ marginTop: 4 }}>
+                      <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }]}>Qtd: {item.quantidade}</Text>
+                    </View>
                   </View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 5 }}>
+                  <TouchableOpacity onPress={() => openEditModal(item)} style={{ padding: 5 }}>
+                    <MaterialIcons name="edit" size={24} color="#2196F3" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDeleteItem(item)} style={{ padding: 5 }}>
+                    <MaterialIcons name="delete-outline" size={24} color="#F44336" />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
-            <View style={{ flexDirection: 'row', gap: 5 }}>
-              <TouchableOpacity onPress={() => openEditModal(item)} style={{ padding: 5 }}>
-                <MaterialIcons name="edit" size={24} color="#2196F3" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDeleteItem(item)} style={{ padding: 5 }}>
-                <MaterialIcons name="delete-outline" size={24} color="#F44336" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+          );
+        }}
         ListEmptyComponent={<Text>Nenhum item salvo.</Text>}
         style={styles.list}
       />
@@ -337,7 +349,11 @@ export default function HomeScreen() {
         <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: '#9e9e9e' }]} onPress={handleLogout}>
           <Text style={styles.addBtnText}>Sair</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.addBtn, { flex: 1 }]} onPress={handleConfirm}>
+        <TouchableOpacity 
+          style={[styles.addBtn, { flex: 1 }, items.length === 0 && { backgroundColor: '#ccc' }]} 
+          onPress={handleConfirm}
+          disabled={items.length === 0}
+        >
           <Text style={styles.addBtnText}>Confirmar</Text>
         </TouchableOpacity>
       </View>
