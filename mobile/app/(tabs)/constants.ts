@@ -30,5 +30,25 @@ export const sugestoes = {
     'Fio dental', 'Desodorante', 'Absorvente', 'Fralda descartável', 'Lenço umedecido',
     'Barbeador', 'Creme de barbear', 'Enxaguante bucal', 'Hastes flexíveis',
     'Álcool em gel', 'Multiuso', 'Limpador de vidros', 'Saco de lixo', 'Lustra móveis'
+  ],
+  Padaria: [
+    'Pão de sal', 'Pão doce', 'Bolo simples', 'Bolo recheado', 'Sonho',
+    'Rosca', 'Pão de milho', 'Pão integral', 'Biscoito de polvilho', 'Pão de queijo'
+  ],
+  Bebidas: [
+    'Vinho red', 'Vinho branco', 'Whisky', 'Vodka', 'Energético', 
+    'Água tônica', 'Suco de caixinha', 'Suco concentrado', 'Chá pronto'
+  ],
+  PetShop: [
+    'Ração para cães', 'Ração para gatos', 'Sachê para gato', 'Petiscos',
+    'Areia sanitária', 'Tapete higiênico', 'Shampoo pet'
+  ],
+  Utilidades: [
+    'Lâmpada', 'Pilha AA', 'Pilha AAA', 'Fósforo', 'Acendedor', 
+    'Vela', 'Filtro de café', 'Papel alumínio', 'Plástico filme'
+  ],
+  Escolar: [
+    'Caderno', 'Lápis', 'Caneta', 'Borracha', 'Apontador', 
+    'Régua', 'Mochila', 'Estojo', 'Papel A4', 'Cola'
   ]
 };

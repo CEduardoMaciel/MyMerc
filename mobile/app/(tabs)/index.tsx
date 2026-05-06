@@ -13,7 +13,7 @@ interface Item {
   id: string;
   name: string;
   quantidade: string;
-  grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas'; 
+  grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas' | 'Padaria' | 'Bebidas' | 'PetShop' | 'Utilidades' | 'Escolar'; 
   // Adiciona status para consistência se os itens forem passados para a tela de confirmação
   // status?: 'pending' | 'confirmed' | 'not_purchased';
   // isConfirming?: boolean;
@@ -21,6 +21,18 @@ interface Item {
 
 const STORAGE_KEY = 'shoppingList';
 const AUTH_KEY = 'isLoggedIn';
+
+const groupIcons: Record<Item['grupo'], keyof typeof MaterialIcons.glyphMap> = {
+  Alimentício: 'restaurant',
+  Higiene: 'wash',
+  Frios: 'ac-unit',
+  Frutas: 'eco',
+  Padaria: 'bakery-dining',
+  Bebidas: 'local-drink',
+  PetShop: 'pets',
+  Utilidades: 'home-repair-service',
+  Escolar: 'school',
+};
 
 export default function HomeScreen() {
   const [items, setItems] = useState<Item[]>([]);
@@ -310,9 +322,13 @@ export default function HomeScreen() {
                   marginBottom: 8,
                   borderRadius: 6,
                   borderLeftWidth: 5,
-                  borderLeftColor: '#1B5E20'
+                      borderLeftColor: '#1B5E20',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8
                 }}>
-                <Text style={{ fontWeight: '900', color: '#1B5E20', textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>{item.grupo}</Text>
+                      <MaterialIcons name={groupIcons[item.grupo]} size={18} color="#1B5E20" />
+                      <Text style={{ fontWeight: '900', color: '#1B5E20', textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>{item.grupo}</Text>
                 </View>
               )}
               <View style={styles.itemContainer}>
