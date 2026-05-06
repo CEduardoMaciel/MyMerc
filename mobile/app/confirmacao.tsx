@@ -22,7 +22,7 @@ interface Item {
   isConfirmed?: boolean;
 }
 
-const ConfirmationOverlay = ({ isConfirmed, isConfirming }: { isConfirmed: boolean; isConfirming: boolean }) => {
+const ConfirmationOverlay = ({ isConfirmed, isConfirming }: { isConfirmed?: boolean; isConfirming?: boolean }) => {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -126,13 +126,24 @@ export default function ConfirmacaoScreen() {
       if (stored) {
         const parsedItems: Item[] = JSON.parse(stored).map((item: Item) => ({
           ...item,
-          status: item.status || 'pending' // Garante que o status esteja definido
+          status: item.status || 'pending', // Garante que o status esteja definido
+          isConfirmed: item.status === 'confirmed' // Inicializa o estado visual
         }));
         setShoppingList(parsedItems);
       }
     };
     loadItems();
   }, []);
+
+  // Salva a lista sempre que houver alterações no status ou quantidade
+  useEffect(() => {
+    const saveItems = async () => {
+      if (shoppingList.length > 0) {
+        await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(shoppingList));
+      }
+    };
+    saveItems();
+  }, [shoppingList]);
 
   const sortedActiveItems = useMemo(() => {
     const list = shoppingList.filter(item => item.status === 'pending' || item.status === 'confirmed');
@@ -235,11 +246,11 @@ export default function ConfirmacaoScreen() {
         data={sortedActiveItems}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={[styles.itemContainer, (item.isConfirmed || item.isConfirming) && { backgroundColor: '#d4edda', borderColor: '#c3e6cb' }]}>
-            <ConfirmationOverlay isConfirmed={item.isConfirmed} isConfirming={item.isConfirming} />
+          <View style={[styles.itemContainer, (item.status === 'confirmed' || item.isConfirming) && { backgroundColor: '#d4edda', borderColor: '#c3e6cb' }]}>
+            <ConfirmationOverlay isConfirmed={item.status === 'confirmed'} isConfirming={item.isConfirming} />
             <View style={styles.itemContent}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.itemText, (item.status === 'confirmed' || item.isConfirming) && { color: '#155724' }]}>{item.name} ({item.quantidade})</Text>
+                <Text style={[styles.itemText, (item.status === 'confirmed' || item.isConfirming) && { color: '#155724', fontWeight: item.status === 'confirmed' ? 'bold' : 'normal' }]}>{item.name} ({item.quantidade})</Text>
                 <Text style={{ fontSize: 12, color: '#666' }}>{item.grupo}</Text>
               </View>
               <View style={{ flexDirection: 'row' }}>

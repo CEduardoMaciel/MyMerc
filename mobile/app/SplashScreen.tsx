@@ -15,6 +15,12 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const logoScale = useRef(new Animated.Value(0.5)).current;
   const logoTranslateY = useRef(new Animated.Value(0)).current;
 
+  // Animação da Mão e Produto
+  const handAnimY = useRef(new Animated.Value(-150)).current;
+  const handOpacity = useRef(new Animated.Value(0)).current;
+  const productAnimY = useRef(new Animated.Value(-130)).current;
+  const productOpacity = useRef(new Animated.Value(0)).current;
+
   // Animações do Login
   const loginOpacity = useRef(new Animated.Value(0)).current;
   const loginTranslateY = useRef(new Animated.Value(30)).current;
@@ -56,6 +62,23 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
         Animated.timing(cartShake, { toValue: 10, duration: 50, useNativeDriver: true }),
         Animated.timing(cartShake, { toValue: -10, duration: 50, useNativeDriver: true }),
         Animated.timing(cartShake, { toValue: 0, duration: 50, useNativeDriver: true }),
+      ]),
+
+      // 2.7 Mão colocando produto no carrinho (Estilo Coyote)
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(handOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(productOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(handAnimY, { toValue: -40, duration: 600, useNativeDriver: true }),
+          Animated.timing(productAnimY, { toValue: 0, duration: 600, useNativeDriver: true }),
+        ]),
+        Animated.timing(productOpacity, { toValue: 0, duration: 150, useNativeDriver: true }), // Produto "cai" no carrinho
+        Animated.parallel([
+          Animated.timing(handAnimY, { toValue: -150, duration: 500, useNativeDriver: true }),
+          Animated.timing(handOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+        ]),
       ]),
 
       // 3. Freio e Poeira (Partículas saindo do carrinho)
@@ -114,6 +137,27 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
       </Animated.View>
 
       <Animated.View style={[localStyles.contentGroup, { transform: [{ translateY: logoTranslateY }] }]}>
+        {/* Mão e Produto (Animação de colocar item) */}
+        <Animated.View style={{
+          position: 'absolute',
+          top: 0,
+          opacity: productOpacity,
+          transform: [{ translateY: productAnimY }],
+          zIndex: 5
+        }}>
+          <MaterialIcons name="inventory" size={24} color="#FF9800" />
+        </Animated.View>
+        
+        <Animated.View style={{
+          position: 'absolute',
+          top: 0,
+          opacity: handOpacity,
+          transform: [{ translateY: handAnimY }],
+          zIndex: 6
+        }}>
+          <MaterialIcons name="back-hand" size={40} color="#f1c27d" />
+        </Animated.View>
+
         {/* Carrinho - Agora fica atrás no JSX ou com zIndex menor */}
         <Animated.View style={{
           transform: [
