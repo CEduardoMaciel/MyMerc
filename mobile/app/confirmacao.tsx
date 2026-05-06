@@ -6,22 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
 import { styles } from './(tabs)/style';
 import { Logo } from '../components/logo';
-
-const USER_CRED_KEY = 'userCredentials';
-const getSavedKey = (user: string) => {
-  const sanitized = (user || 'default').toLowerCase().replace(/[^a-z0-9]/g, '');
-  return `savedPurchases${sanitized}`;
-};
-const getActiveListKey = (user: string) => {
-  const sanitized = (user || 'default').toLowerCase().replace(/[^a-z0-9]/g, '');
-  return `activeList${sanitized}`;
-};
-const formatDecimal = (val: string) => {
-  if (!val) return '0.00';
-  const num = parseFloat(val.replace(',', '.'));
-  return isNaN(num) ? '0.00' : num.toFixed(2);
-};
-const STORAGE_KEY = 'shoppingList';
+import { USER_CRED_KEY, getSavedKey, getActiveListKey, formatDecimal } from './utils';
 
 // Habilita animações de layout no Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
