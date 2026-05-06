@@ -32,7 +32,7 @@ interface Item {
   id: string;
   name: string;
   quantidade: string;
-  grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas' | 'Padaria' | 'Bebidas' | 'PetShop' | 'Utilidades' | 'Escolar';
+  grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas' | 'Padaria' | 'Bebidas' | 'PetShop' | 'Utilidades' | 'Escolar' | 'Outros';
   status: 'pending' | 'confirmed' | 'not_purchased';
   isConfirming?: boolean;
   isConfirmed?: boolean;
@@ -48,6 +48,7 @@ const groupIcons: Record<Item['grupo'], keyof typeof MaterialIcons.glyphMap> = {
   PetShop: 'pets',
   Utilidades: 'home-repair-service',
   Escolar: 'school',
+  Outros: 'category',
 };
 
 const ConfirmationOverlay = ({ isConfirmed, isConfirming }: { isConfirmed?: boolean; isConfirming?: boolean }) => {

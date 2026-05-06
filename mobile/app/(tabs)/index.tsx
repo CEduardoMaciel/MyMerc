@@ -13,7 +13,7 @@ interface Item {
   id: string;
   name: string;
   quantidade: string;
-  grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas' | 'Padaria' | 'Bebidas' | 'PetShop' | 'Utilidades' | 'Escolar'; 
+  grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas' | 'Padaria' | 'Bebidas' | 'PetShop' | 'Utilidades' | 'Escolar' | 'Outros'; 
   // Adiciona status para consistência se os itens forem passados para a tela de confirmação
   // status?: 'pending' | 'confirmed' | 'not_purchased';
   // isConfirming?: boolean;
@@ -50,6 +50,7 @@ const groupIcons: Record<Item['grupo'], keyof typeof MaterialIcons.glyphMap> = {
   PetShop: 'pets',
   Utilidades: 'home-repair-service',
   Escolar: 'school',
+  Outros: 'category',
 };
 
 let isAppFirstMount = true;
@@ -64,6 +65,10 @@ export default function HomeScreen() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [userName, setUserName] = useState('');
   const [isUserContextLoaded, setIsUserContextLoaded] = useState(false);
+
+  const [isGroupModalVisible, setIsGroupModalVisible] = useState(false);
+  const [pendingItemName, setPendingItemName] = useState('');
+  const [pendingItemQuantity, setPendingItemQuantity] = useState('');
 
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [editQuantity, setEditQuantity] = useState('');
@@ -209,9 +214,10 @@ export default function HomeScreen() {
     }
 
     const inputValue = input.trim();
+    const lowerInput = inputValue.toLowerCase();
 
     // Verificar se o item já existe na lista (case-insensitive)
-    const existingItem = items.find(i => i.name.toLowerCase() === inputValue.toLowerCase());
+    const existingItem = items.find(i => i.name.toLowerCase() === lowerInput);
     if (existingItem) {
       Alert.alert(
         'Item já adicionado',
@@ -224,23 +230,47 @@ export default function HomeScreen() {
       return;
     }
 
+    // Busca o grupo de forma case-insensitive nos arrays de sugestões
     const matchedGroup = Object.entries(sugestoes).find(([, itens]) =>
-      itens.includes(inputValue)
+      itens.some(s => s.toLowerCase() === lowerInput)
     );
 
-    const grupo: Item['grupo'] = (matchedGroup?.[0] as Item['grupo']) ?? 'Alimentício';
+    if (matchedGroup) {
+      const grupo = matchedGroup[0] as Item['grupo'];
+      const newItem: Item = {
+        id: `${Date.now()}-${Math.random()}`,
+        name: inputValue,
+        quantidade: formatDecimal(quantidade),
+        grupo,
+      };
+      setItems((current) => [newItem, ...current]);
+      setInput('');
+      setQuantidade('');
+      setShowSuggestions(false);
+      inputRef.current?.focus();
+    } else {
+      setPendingItemName(inputValue);
+      setPendingItemQuantity(quantidade);
+      setIsGroupModalVisible(true);
+    }
+  };
 
+  const finalizeAddItem = (grupo: Item['grupo']) => {
     const newItem: Item = {
       id: `${Date.now()}-${Math.random()}`,
-      name: inputValue,
-      quantidade: formatDecimal(quantidade),
+      name: pendingItemName,
+      quantidade: formatDecimal(pendingItemQuantity),
       grupo,
     };
 
     setItems((current) => [newItem, ...current]);
     setInput('');
     setQuantidade('');
+    setPendingItemName('');
+    setPendingItemQuantity('');
+    setIsGroupModalVisible(false);
     setShowSuggestions(false);
+    inputRef.current?.focus();
   };
 
   const handleDeleteItem = (item: Item) => {
@@ -695,6 +725,49 @@ export default function HomeScreen() {
                 <Text style={styles.addBtnText}>Usar Lista</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={isGroupModalVisible} transparent animationType="slide">
+        <View style={localStyles.modalOverlay}>
+          <View style={[localStyles.modalContent, { width: '90%', maxHeight: '80%' }]}>
+            <Text style={[styles.title, { fontSize: 20, color: '#1B5E20', marginBottom: 5 }]}>Selecione o Grupo</Text>
+            <Text style={{ marginBottom: 15, color: '#666' }}>O item "{pendingItemName}" não foi reconhecido. Onde deseja encaixá-lo?</Text>
+            
+            <View style={{ width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {(Object.keys(groupIcons) as Array<Item['grupo']>).map((grupo) => (
+                <TouchableOpacity 
+                  key={grupo}
+                  style={{ 
+                    width: '48%', 
+                    backgroundColor: '#F1F8E9', 
+                    padding: 12, 
+                    borderRadius: 10, 
+                    marginBottom: 10, 
+                    flexDirection: 'row', 
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: '#C8E6C9'
+                  }}
+                  onPress={() => finalizeAddItem(grupo)}
+                >
+                  <MaterialIcons name={groupIcons[grupo]} size={20} color="#2E7D32" style={{ marginRight: 8 }} />
+                  <Text style={{ fontSize: 13, color: '#2E7D32', fontWeight: 'bold' }}>{grupo}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.addBtn, { width: '100%', backgroundColor: '#ccc', marginTop: 10 }]} 
+              onPress={() => {
+                setIsGroupModalVisible(false);
+                setPendingItemName('');
+                setPendingItemQuantity('');
+              }}
+            >
+              <Text style={styles.addBtnText}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
