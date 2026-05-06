@@ -6,13 +6,16 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { styles } from './style';
 import { sugestoes } from './constants';
-import LoginScreen from './Login';
+import SplashScreen from '../SplashScreen';
 
 interface Item {
   id: string;
   name: string;
   quantidade: string;
-  grupo: 'Alimentício' | 'Higiene';
+  grupo: 'Alimentício' | 'Higiene'; // Assumindo que estes são os únicos dois grupos
+  // Adiciona status para consistência se os itens forem passados para a tela de confirmação
+  // status?: 'pending' | 'confirmed' | 'not_purchased';
+  // isConfirming?: boolean;
 }
 
 const STORAGE_KEY = 'shoppingList';
@@ -37,8 +40,8 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        // Sempre iniciar como não logado para forçar login a cada vez
-        setIsLoggedIn(false);
+        const auth = await SecureStore.getItemAsync(AUTH_KEY);
+        setIsLoggedIn(auth === 'true');
       } catch (error) {
         console.error('Erro ao carregar estado de login:', error);
       } finally {
@@ -209,12 +212,23 @@ export default function HomeScreen() {
   }
 
   if (!isLoggedIn) {
-    return <LoginScreen onLogin={handleLoginSuccess} />;
+    return <SplashScreen onFinish={handleLoginSuccess} />;
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Adicionar item</Text>
+      <Text style={[styles.title, { 
+        fontSize: 32, 
+        fontWeight: '900', 
+        color: '#1B5E20', 
+        letterSpacing: -1,
+        textShadowColor: 'rgba(255, 255, 255, 0.8)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10 
+      }]}>MyMerc</Text>
+
+      <View style={{ marginBottom: 20 }}>
+        <Text style={{ color: '#666', marginBottom: 8 }}>O que vamos comprar hoje?</Text>
       <View style={{ zIndex: 10 }}>
         <TextInput
           ref={inputRef}
@@ -244,18 +258,30 @@ export default function HomeScreen() {
         )}
       </View>
 
-      <TextInput
-        style={styles.quantidadeText}
-        placeholder="Quantidade"
-        value={quantidade}
-        onChangeText={setQuantidade}
-      />
-      <TouchableOpacity style={styles.addBtn} onPress={handleAddItem}>
-        <Text style={styles.addBtnText}>Adicionar</Text>
-      </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+          <TextInput
+            style={styles.quantidadeText}
+            placeholder="Quantidade"
+            value={quantidade}
+            onChangeText={setQuantidade}
+          />
+          <TouchableOpacity style={styles.addBtn} onPress={handleAddItem}>
+            <MaterialIcons name="add" size={28} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, marginBottom: 10 }}>
-        <Text style={[styles.title, { marginBottom: 0 }]}>Sua lista</Text>
+        <Text style={[styles.title, { 
+          marginBottom: 0,
+          fontSize: 24, 
+          fontWeight: '900', 
+          color: '#1B5E20', 
+          letterSpacing: -1,
+          textShadowColor: 'rgba(255, 255, 255, 0.8)',
+          textShadowOffset: { width: 0, height: 0 },
+          textShadowRadius: 10 
+        }]}>Sua lista</Text>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <TouchableOpacity onPress={handleDeleteAll} style={{ padding: 5 }}>
             <MaterialIcons name="delete-sweep" size={28} color="#F44336" />
@@ -281,14 +307,16 @@ export default function HomeScreen() {
             <View style={styles.itemContent}>
               <View>
                 <Text style={styles.itemText}>{item.name}</Text>
-                <Text style={styles.itemText}>{item.quantidade}</Text>
-              </View>
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: item.grupo === 'Alimentício' ? '#4CAF50' : '#2196F3' },
-                ]}>
-                <Text style={styles.badgeText}>{item.grupo}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                  <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }]}>Qtd: {item.quantidade}</Text>
+                  <View
+                    style={[
+                      styles.badge,
+                      { backgroundColor: item.grupo === 'Alimentício' ? '#4CAF50' : '#2196F3' },
+                    ]}>
+                    <Text style={styles.badgeText}>{item.grupo}</Text>
+                  </View>
+                </View>
               </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 5 }}>
@@ -317,7 +345,15 @@ export default function HomeScreen() {
       <Modal visible={isEditModalVisible} transparent animationType="fade">
         <View style={localStyles.modalOverlay}>
           <View style={localStyles.modalContent}>
-            <Text style={styles.title}>Editar Item</Text>
+            <Text style={[styles.title, { 
+              fontSize: 24, 
+              fontWeight: '900', 
+              color: '#1B5E20', 
+              letterSpacing: -1,
+              textShadowColor: 'rgba(255, 255, 255, 0.8)',
+              textShadowOffset: { width: 0, height: 0 },
+              textShadowRadius: 10 
+            }]}>Editar Item</Text>
             <Text style={{ marginBottom: 15, fontSize: 16 }}>{editingItem?.name}</Text>
             <TextInput
               style={[styles.input, { width: '100%' }]}
