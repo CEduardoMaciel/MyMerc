@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialIcons } from '@expo/vector-icons';
 import { styles } from './(tabs)/style';
+import { Logo } from '../components/logo';
 
 const STORAGE_KEY = 'shoppingList';
 
@@ -105,6 +106,51 @@ const SummaryModal = ({ visible, summary, onClose, onGoHome }: {
   );
 };
 
+const NotPurchasedModal = ({ visible, items, onClose, onRestore }: {
+  visible: boolean;
+  items: Item[];
+  onClose: () => void;
+  onRestore: (item: Item) => void;
+}) => {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={localStyles.modalOverlay}>
+        <View style={[localStyles.modalContent, { height: '65%', width: '90%' }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 20, alignItems: 'center' }}>
+            <Text style={{ fontSize: 22, fontWeight: '900', color: '#1B5E20' }}>Não Comprados</Text>
+            <TouchableOpacity onPress={onClose} style={{ padding: 5 }}>
+              <MaterialIcons name="close" size={28} color="#666" />
+            </TouchableOpacity>
+          </View>
+          
+          <FlatList
+            data={items}
+            keyExtractor={(item) => item.id}
+            style={{ width: '100%' }}
+            renderItem={({ item }) => (
+              <View style={[styles.itemContainer, { marginBottom: 10, opacity: 0.9, backgroundColor: '#FFF3E0', borderColor: '#FFE0B2' }]}>
+                <View style={styles.itemContent}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.itemText, { color: '#E65100' }]}>{item.name}</Text>
+                    <Text style={{ fontSize: 12, color: '#666' }}>Qtd: {item.quantidade}</Text>
+                  </View>
+                  <TouchableOpacity 
+                    onPress={() => onRestore(item)}
+                    style={{ backgroundColor: '#4CAF50', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }}
+                  >
+                    <MaterialIcons name="settings-backup-restore" size={24} color="white" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20, color: '#999' }}>Nenhum item nesta lista.</Text>}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 export default function ConfirmacaoScreen() {
   const router = useRouter();
   const { sortBy } = useLocalSearchParams<{ sortBy: 'none' | 'group' }>();
@@ -113,6 +159,7 @@ export default function ConfirmacaoScreen() {
   const [newQuantity, setNewQuantity] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [showNotPurchasedModal, setShowNotPurchasedModal] = useState(false);
   const [summaryData, setSummaryData] = useState<{
     totalItems: number;
     confirmedItems: number;
@@ -206,42 +253,64 @@ export default function ConfirmacaoScreen() {
   );
 
   const handleFinishShopping = () => {
+    const confirmed = shoppingList.filter(item => item.status === 'confirmed').length;
+    const notPurchased = shoppingList.filter(item => item.status === 'not_purchased').length;
+    const remaining = shoppingList.filter(item => item.status === 'pending').length;
+
+    const onConfirmFinish = () => {
+      setSummaryData({
+        totalItems: shoppingList.length,
+        confirmedItems: confirmed,
+        notPurchasedItemsCount: notPurchased,
+        remainingItems: remaining,
+      });
+      setShowSummaryModal(true);
+    };
+
+    if (confirmed === 0) {
+      Alert.alert(
+        'Atenção',
+        'Você não marcou nenhum item como comprado. Deseja finalizar assim mesmo?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Sim, finalizar', onPress: onConfirmFinish },
+        ]
+      );
+      return;
+    }
+
     Alert.alert(
       'Finalizar Compras',
       'Deseja realmente finalizar as compras e ver o resumo?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Finalizar',
-          onPress: () => {
-            const confirmed = shoppingList.filter(item => item.status === 'confirmed').length;
-            const notPurchased = shoppingList.filter(item => item.status === 'not_purchased').length;
-            const remaining = shoppingList.filter(item => item.status === 'pending').length;
-
-            setSummaryData({
-              totalItems: shoppingList.length,
-              confirmedItems: confirmed,
-              notPurchasedItemsCount: notPurchased,
-              remainingItems: remaining,
-            });
-            setShowSummaryModal(true);
-          },
-        },
+        { text: 'Finalizar', onPress: onConfirmFinish },
       ]
     );
   };
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { 
-        fontSize: 28, 
-        fontWeight: '900', 
-        color: '#1B5E20', 
-        letterSpacing: -1,
-        textShadowColor: 'rgba(255, 255, 255, 0.8)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10 
-      }]}>Itens para Comprar</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingTop: 10 }}>
+        <Logo />
+        {sortedNotPurchasedItems.length > 0 && (
+          <TouchableOpacity 
+            onPress={() => setShowNotPurchasedModal(true)}
+            style={{ position: 'relative', padding: 5, marginRight: 5 }}
+          >
+            <MaterialIcons name="shopping-basket" size={32} color="#FF9800" />
+            <View style={{ 
+              position: 'absolute', top: 0, right: 0, 
+              backgroundColor: '#F44336', borderRadius: 10, 
+              minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center',
+              paddingHorizontal: 4, borderWidth: 2, borderColor: '#fff'
+            }}>
+              <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{sortedNotPurchasedItems.length}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      </View>
+
       <FlatList
         data={sortedActiveItems}
         keyExtractor={(item) => item.id}
@@ -292,57 +361,6 @@ export default function ConfirmacaoScreen() {
         ListEmptyComponent={<Text style={{ textAlign: 'center', marginVertical: 10 }}>Nenhum item pendente.</Text>}
       />
 
-      {sortedNotPurchasedItems.length > 0 && (
-        <>
-          <Text style={[styles.title, { 
-            marginTop: 20,
-            fontSize: 24, 
-            fontWeight: '900', 
-            color: '#1B5E20', 
-            letterSpacing: -1,
-            textShadowColor: 'rgba(255, 255, 255, 0.8)',
-            textShadowOffset: { width: 0, height: 0 },
-            textShadowRadius: 10 
-          }]}>Não comprados</Text>
-          <FlatList
-            data={sortedNotPurchasedItems}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item, index }) => {
-              const showHeader = sortBy === 'group' && (index === 0 || sortedNotPurchasedItems[index - 1].grupo !== item.grupo);
-              return (
-                <View>
-                  {showHeader && (
-                    <View style={{
-                      backgroundColor: '#f1f8e9',
-                      paddingVertical: 6,
-                      paddingHorizontal: 12,
-                      marginTop: 15,
-                      marginBottom: 8,
-                      borderRadius: 6,
-                      borderLeftWidth: 5,
-                      borderLeftColor: '#1B5E20'
-                    }}>
-                      <Text style={{ fontWeight: '900', color: '#1B5E20', textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>{item.grupo}</Text>
-                    </View>
-                  )}
-                  <View style={[styles.itemContainer, { opacity: 0.7 }]}>
-                    <View style={styles.itemContent}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.itemText}>{item.name}</Text>
-                        <View style={{ marginTop: 4 }}>
-                          <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }]}>Qtd: {item.quantidade}</Text>
-                        </View>
-                      </View>
-                      <ActionButton icon="settings-backup-restore" color="#9E9E9E" onPress={() => handleMoveBack(item)} />
-                    </View>
-                  </View>
-                </View>
-              );
-            }}
-          />
-        </>
-      )}
-
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={localStyles.modalOverlay}>
           <View style={localStyles.modalContent}>
@@ -386,6 +404,13 @@ export default function ConfirmacaoScreen() {
         summary={summaryData}
         onClose={() => setShowSummaryModal(false)}
         onGoHome={async () => { await SecureStore.deleteItemAsync(STORAGE_KEY); setShowSummaryModal(false); router.replace('/'); }}
+      />
+
+      <NotPurchasedModal
+        visible={showNotPurchasedModal}
+        items={sortedNotPurchasedItems}
+        onClose={() => setShowNotPurchasedModal(false)}
+        onRestore={handleMoveBack}
       />
 
       <TouchableOpacity style={styles.addBtn} onPress={() => router.back()}>

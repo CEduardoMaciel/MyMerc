@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing, Dimensions, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing, Dimensions, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 
@@ -134,101 +134,106 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   };
 
   return (
-    <View style={localStyles.container}>
-      {/* Estrada (Linhas de perspectiva) */}
-      <Animated.View style={[localStyles.roadContainer, { opacity: roadOpacity }]}>
-        <View style={localStyles.roadLineLeft} />
-        <View style={localStyles.roadLineRight} />
-      </Animated.View>
-
-      <Animated.View style={[localStyles.contentGroup, { transform: [{ translateY: logoTranslateY }] }]}>
-        {/* Mão e Produto (Animação de colocar item) */}
-        <Animated.View style={{
-          position: 'absolute',
-          top: 0,
-          opacity: productOpacity,
-          transform: [{ translateY: productAnimY }],
-          zIndex: 5
-        }}>
-          <MaterialIcons name="archive" size={24} color="#FF9800" />
-        </Animated.View>
-        
-        <Animated.View style={{
-          position: 'absolute',
-          top: 0,
-          opacity: handOpacity,
-          transform: [{ translateY: handAnimY }],
-          zIndex: 6
-        }}>
-          <MaterialIcons name="pan-tool" size={40} color="#f1c27d" />
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={localStyles.container}>
+        {/* Estrada (Linhas de perspectiva) */}
+        <Animated.View style={[localStyles.roadContainer, { opacity: roadOpacity }]}>
+          <View style={localStyles.roadLineLeft} />
+          <View style={localStyles.roadLineRight} />
         </Animated.View>
 
-        {/* Carrinho - Agora fica atrás no JSX ou com zIndex menor */}
-        <Animated.View style={{
-          transform: [
-            { translateY: cartMove }, 
-            { scale: cartScale },
-            { translateX: cartShake }
-          ],
-          zIndex: 1
-        }}>
-          <MaterialIcons name="shopping-cart" size={40} color="#4CAF50" />
+        <Animated.View style={[localStyles.contentGroup, { transform: [{ translateY: logoTranslateY }] }]}>
+          {/* Mão e Produto (Animação de colocar item) */}
+          <Animated.View style={{
+            position: 'absolute',
+            top: 0,
+            opacity: productOpacity,
+            transform: [{ translateY: productAnimY }],
+            zIndex: 5
+          }}>
+            <MaterialIcons name="archive" size={24} color="#FF9800" />
+          </Animated.View>
+          
+          <Animated.View style={{
+            position: 'absolute',
+            top: 0,
+            opacity: handOpacity,
+            transform: [{ translateY: handAnimY }],
+            zIndex: 6
+          }}>
+            <MaterialIcons name="pan-tool" size={40} color="#f1c27d" />
+          </Animated.View>
+
+          {/* Carrinho - Agora fica atrás no JSX ou com zIndex menor */}
+          <Animated.View style={{
+            transform: [
+              { translateY: cartMove }, 
+              { scale: cartScale },
+              { translateX: cartShake }
+            ],
+            zIndex: 1
+          }}>
+            <MaterialIcons name="shopping-cart" size={40} color="#4CAF50" />
+          </Animated.View>
+
+        {/* Logo MyMerc - Posicionado para cobrir o carrinho */}
+          <Animated.View style={{ 
+            opacity: logoOpacity, 
+            transform: [{ scale: logoScale }],
+            position: 'absolute',
+            alignItems: 'center',
+            zIndex: 10 // Garante que fica por cima
+          }}>
+          <Text style={localStyles.logoText}>MyMerc</Text>
+            <Text style={localStyles.tagline}>Suas compras em ordem</Text>
+          </Animated.View>
         </Animated.View>
 
-        {/* Logo My Merc - Posicionado para cobrir o carrinho */}
+        {/* Poeira/Partículas */}
+        <Animated.View style={[localStyles.particlesContainer, { opacity: particlesOpacity }]}>
+          {particles.map((p, i) => (
+            <Animated.View 
+              key={i} 
+              style={[localStyles.particle, { transform: [{ translateX: p.x }, { translateY: p.y }] }]} 
+            />
+          ))}
+        </Animated.View>
+
+        {/* Formulário de Login */}
         <Animated.View style={{ 
-          opacity: logoOpacity, 
-          transform: [{ scale: logoScale }],
+          opacity: loginOpacity, 
+          transform: [{ translateY: loginTranslateY }],
+          width: '85%', 
           position: 'absolute',
-          alignItems: 'center',
-          zIndex: 10 // Garante que fica por cima
+          bottom: height * 0.15,
+          zIndex: 20 
         }}>
-          <Text style={localStyles.logoText}>My Merc</Text>
-          <Text style={localStyles.tagline}>Suas compras em ordem</Text>
-        </Animated.View>
-      </Animated.View>
-
-      {/* Poeira/Partículas */}
-      <Animated.View style={[localStyles.particlesContainer, { opacity: particlesOpacity }]}>
-        {particles.map((p, i) => (
-          <Animated.View 
-            key={i} 
-            style={[localStyles.particle, { transform: [{ translateX: p.x }, { translateY: p.y }] }]} 
+          <TextInput
+            style={localStyles.input}
+            placeholder="Usuário"
+            value={username}
+            placeholderTextColor="#999"
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
-        ))}
-      </Animated.View>
-
-      {/* Formulário de Login */}
-      <Animated.View style={{ 
-        opacity: loginOpacity, 
-        transform: [{ translateY: loginTranslateY }],
-        width: '85%', 
-        position: 'absolute',
-        bottom: height * 0.15,
-        zIndex: 20 
-      }}>
-        <TextInput
-          style={localStyles.input}
-          placeholder="Usuário"
-          value={username}
-          placeholderTextColor="#999"
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <TextInput
-          style={localStyles.input}
-          placeholder="Senha"
-          value={password}
-          placeholderTextColor="#999"
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <TouchableOpacity style={localStyles.enterBtn} onPress={handleLogin}>
-          <Text style={localStyles.enterBtnText}>Entrar</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
+          <TextInput
+            style={localStyles.input}
+            placeholder="Senha"
+            value={password}
+            placeholderTextColor="#999"
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          <TouchableOpacity style={localStyles.enterBtn} onPress={handleLogin}>
+            <Text style={localStyles.enterBtnText}>Entrar</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 

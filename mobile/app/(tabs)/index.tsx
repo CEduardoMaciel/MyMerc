@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { styles } from './style';
 import { sugestoes } from './constants';
+import { Logo } from '../../components/logo';
 import SplashScreen from '../SplashScreen';
 
 interface Item {
@@ -217,15 +218,9 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { 
-        fontSize: 32, 
-        fontWeight: '900', 
-        color: '#1B5E20', 
-        letterSpacing: -1,
-        textShadowColor: 'rgba(255, 255, 255, 0.8)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10 
-      }]}>MyMerc</Text>
+      <View style={{ alignSelf: 'flex-start', marginBottom: 10, marginLeft: -10 }}>
+        <Logo />
+      </View>
 
       <View style={{ marginBottom: 20 }}>
         <Text style={{ color: '#666', marginBottom: 8 }}>O que vamos comprar hoje?</Text>
@@ -260,12 +255,12 @@ export default function HomeScreen() {
 
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
           <TextInput
-            style={styles.quantidadeText}
+            style={[styles.quantidadeText, { width: 110 }]}
             placeholder="Quantidade"
             value={quantidade}
             onChangeText={setQuantidade}
           />
-          <TouchableOpacity style={styles.addBtn} onPress={handleAddItem}>
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: '#4CAF50' }]} onPress={handleAddItem}>
             <MaterialIcons name="add" size={28} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -350,7 +345,7 @@ export default function HomeScreen() {
           <Text style={styles.addBtnText}>Sair</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.addBtn, { flex: 1 }, items.length === 0 && { backgroundColor: '#ccc' }]} 
+          style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50' }, items.length === 0 && { backgroundColor: '#ccc' }]} 
           onPress={handleConfirm}
           disabled={items.length === 0}
         >
