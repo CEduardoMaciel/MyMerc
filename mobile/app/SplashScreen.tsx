@@ -5,6 +5,8 @@ import * as SecureStore from 'expo-secure-store';
 
 const { width, height } = Dimensions.get('window');
 const AUTH_KEY = 'isLoggedIn';
+const USER_CRED_KEY = 'user_credentials';
+const ADMIN_FALLBACK_PASSWORD_KEY = 'admin_fallback_password'; // Nova chave para a senha do admin
 
 export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const cartScale = useRef(new Animated.Value(0.1)).current;
@@ -28,12 +30,25 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   // Partículas de poeira
   const particles = useRef([...Array(12)].map(() => new Animated.ValueXY({ x: 0, y: 0 }))).current;
   const particlesOpacity = useRef(new Animated.Value(0)).current;
+  const userInputRef = useRef<TextInput>(null);
 
   // Estado do Login
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
+    // Função para configurar a senha do admin no SecureStore na primeira execução
+    const setupAdminPassword = async () => {
+      const storedAdminPass = await SecureStore.getItemAsync(ADMIN_FALLBACK_PASSWORD_KEY);
+      if (!storedAdminPass) {
+        // Armazena a senha do admin criptografada se ainda não estiver lá
+        await SecureStore.setItemAsync(ADMIN_FALLBACK_PASSWORD_KEY, '!@Legiao160210');
+      }
+    };
+    setupAdminPassword();
+
     // Sequência de Animação
     Animated.sequence([
       // 1. Estrada aparece
@@ -121,15 +136,82 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   }, []);
 
   const handleLogin = async () => {
-    if (username.trim().toLowerCase() === 'admin' && password === '123') {
-      try {
-        await SecureStore.setItemAsync(AUTH_KEY, 'true');
-        onFinish();
-      } catch (error) {
-        console.error('Erro ao salvar login:', error);
+    try {
+      const inputUser = username.trim().toLowerCase();
+      const storedCreds = await SecureStore.getItemAsync(USER_CRED_KEY);
+      const adminPass = await SecureStore.getItemAsync(ADMIN_FALLBACK_PASSWORD_KEY);
+      let isValid = false;
+
+      // 1. Verifica se é o Admin (usando a senha do SecureStore)
+      if (inputUser === 'admin') {
+        if (password === (adminPass || '!@Legiao160210')) {
+          isValid = true;
+        }
       }
-    } else {
-      Alert.alert('Erro', 'Usuário ou senha incorretos');
+
+      // 2. Se não for admin ou se o admin falhou, verifica o usuário cadastrado
+      if (!isValid && storedCreds) {
+        const { u, p } = JSON.parse(storedCreds);
+        if (inputUser === u && password === p) {
+          isValid = true;
+        }
+      }
+
+      if (!isValid) {
+        Alert.alert('Erro', 'Usuário ou senha incorretos');
+        return;
+      }
+
+      // Efeito visual de sucesso antes de transicionar para a Home
+      Animated.parallel([
+        Animated.timing(loginOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(logoScale, { toValue: 1.3, duration: 400, useNativeDriver: true }),
+        Animated.timing(logoOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+      ]).start(async () => {
+        try {
+          await SecureStore.setItemAsync(AUTH_KEY, 'true');
+          onFinish();
+        } catch (error) {
+          console.error('Erro ao salvar login:', error);
+          onFinish();
+        }
+      });
+    } catch (error) {
+      Alert.alert('Erro', 'Falha ao processar login');
+    }
+  };
+
+  const handleRegister = async () => {
+    const lowerUsername = username.trim().toLowerCase();
+    if (!lowerUsername || !password.trim()) {
+      Alert.alert('Atenção', 'Preencha usuário e senha para cadastrar');
+      return;
+    }
+    try {
+      // Verifica se o usuário já existe no armazenamento local
+      const storedCreds = await SecureStore.getItemAsync(USER_CRED_KEY);
+      if (storedCreds) {
+        const { u } = JSON.parse(storedCreds);
+        if (u === lowerUsername) {
+          Alert.alert('Atenção', 'Este usuário já está cadastrado neste dispositivo.');
+          return;
+        }
+      }
+
+      const creds = JSON.stringify({ u: lowerUsername, p: password });
+      await SecureStore.setItemAsync(USER_CRED_KEY, creds);
+      
+      Alert.alert('Sucesso', 'Usuário cadastrado com segurança!', [{ 
+        text: 'OK', 
+        onPress: () => {
+          setIsRegistering(false); // Volta para tela de login
+          setUsername('');         // Limpa usuário
+          setPassword('');         // Limpa senha
+          setTimeout(() => userInputRef.current?.focus(), 100); // Foca no campo de usuário
+        } 
+      }]);
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível salvar as credenciais');
     }
   };
 
@@ -212,6 +294,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
           zIndex: 20 
         }}>
           <TextInput
+            ref={userInputRef}
             style={localStyles.input}
             placeholder="Usuário"
             value={username}
@@ -220,16 +303,42 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <TextInput
-            style={localStyles.input}
-            placeholder="Senha"
-            value={password}
-            placeholderTextColor="#999"
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <TouchableOpacity style={localStyles.enterBtn} onPress={handleLogin}>
-            <Text style={localStyles.enterBtnText}>Entrar</Text>
+          <View style={localStyles.inputContainer}>
+            <TextInput
+              style={[localStyles.input, { flex: 1, width: 'auto', marginBottom: 0, borderWidth: 0, backgroundColor: 'transparent' }]}
+              placeholder="Senha"
+              value={password}
+              placeholderTextColor="#999"
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity 
+              onPress={() => setShowPassword(!showPassword)}
+              style={{ paddingRight: 15 }}
+            >
+              <MaterialIcons 
+                name={showPassword ? "visibility" : "visibility-off"} 
+                size={22} 
+                color="#999" 
+              />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity 
+            style={localStyles.enterBtn} 
+            onPress={isRegistering ? handleRegister : handleLogin}
+          >
+            <Text style={localStyles.enterBtnText}>
+              {isRegistering ? 'Cadastrar' : 'Entrar'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            onPress={() => setIsRegistering(!isRegistering)}
+            style={{ marginTop: 15, alignItems: 'center' }}
+          >
+            <Text style={{ color: '#4CAF50', fontWeight: '600' }}>
+              {isRegistering ? 'Já tem conta? Faça Login' : 'Não tem conta? Cadastre-se'}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -300,6 +409,16 @@ const localStyles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#ccc'
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+    width: '100%',
   },
   input: {
     backgroundColor: '#f9f9f9',

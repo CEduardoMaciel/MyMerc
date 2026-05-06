@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Modal, TextInput, StyleSheet, Animated, LayoutAnimation, Platform, UIManager, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Modal, TextInput, StyleSheet, Animated, LayoutAnimation, Platform, UIManager, Alert, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useKeepAwake } from 'expo-keep-awake';
 import { styles } from './(tabs)/style';
 import { Logo } from '../components/logo';
 
@@ -164,9 +165,12 @@ const NotPurchasedModal = ({ visible, items, onClose, onRestore }: {
 };
 
 export default function ConfirmacaoScreen() {
+  useKeepAwake(); // Mantém a tela ligada enquanto esta tela estiver aberta
+
   const router = useRouter();
   const { sortBy } = useLocalSearchParams<{ sortBy: 'none' | 'group' }>();
   const [shoppingList, setShoppingList] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [newQuantity, setNewQuantity] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -190,6 +194,11 @@ export default function ConfirmacaoScreen() {
         }));
         setShoppingList(parsedItems);
       }
+      
+      // Simula um carregamento fake rápido para uma transição mais fluida
+      setTimeout(() => {
+        setLoading(false);
+      }, 800);
     };
     loadItems();
   }, []);
@@ -300,6 +309,26 @@ export default function ConfirmacaoScreen() {
       ]
     );
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }]}>
+        <View style={{ marginBottom: 20 }}>
+          <Logo />
+        </View>
+        <ActivityIndicator size="large" color="#4CAF50" />
+        <Text style={{ 
+          marginTop: 15, 
+          color: '#1B5E20', 
+          fontWeight: '900', 
+          fontSize: 16,
+          textTransform: 'uppercase'
+        }}>
+          Organizando Carrinho...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

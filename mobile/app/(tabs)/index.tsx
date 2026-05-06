@@ -1,6 +1,6 @@
 ﻿
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, Modal, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, Modal, StyleSheet, ActivityIndicator } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -21,6 +21,7 @@ interface Item {
 
 const STORAGE_KEY = 'shoppingList';
 const AUTH_KEY = 'isLoggedIn';
+const USER_CRED_KEY = 'user_credentials';
 
 const groupIcons: Record<Item['grupo'], keyof typeof MaterialIcons.glyphMap> = {
   Alimentício: 'restaurant',
@@ -42,6 +43,7 @@ export default function HomeScreen() {
   const [sortBy, setSortBy] = useState<'none' | 'group'>('none');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [userName, setUserName] = useState('');
 
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [editQuantity, setEditQuantity] = useState('');
@@ -55,6 +57,16 @@ export default function HomeScreen() {
       try {
         const auth = await SecureStore.getItemAsync(AUTH_KEY);
         setIsLoggedIn(auth === 'true');
+        
+        if (auth === 'true') {
+          const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+          if (creds) {
+            const { u } = JSON.parse(creds);
+            setUserName(u.charAt(0).toUpperCase() + u.slice(1));
+          } else {
+            setUserName('Admin');
+          }
+        }
       } catch (error) {
         console.error('Erro ao carregar estado de login:', error);
       } finally {
@@ -92,6 +104,13 @@ export default function HomeScreen() {
     try {
       await SecureStore.setItemAsync(AUTH_KEY, 'true');
       setIsLoggedIn(true);
+      const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+      if (creds) {
+        const { u } = JSON.parse(creds);
+        setUserName(u.charAt(0).toUpperCase() + u.slice(1));
+      } else {
+        setUserName('Admin');
+      }
     } catch (error) {
       console.error('Erro ao salvar login:', error);
     }
@@ -218,8 +237,9 @@ export default function HomeScreen() {
 
   if (isAuthLoading) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Carregando...</Text>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Logo />
+        <ActivityIndicator size="large" color="#4CAF50" style={{ marginTop: 20 }} />
       </View>
     );
   }
@@ -233,6 +253,10 @@ export default function HomeScreen() {
       <View style={{ alignSelf: 'flex-start', marginBottom: 10, marginLeft: -10 }}>
         <Logo />
       </View>
+
+      <Text style={{ fontSize: 20, fontWeight: '900', color: '#1B5E20', marginBottom: 2 }}>
+        Olá, {userName}!
+      </Text>
 
       <View style={{ marginBottom: 20 }}>
         <Text style={{ color: '#666', marginBottom: 8 }}>O que vamos comprar hoje?</Text>
