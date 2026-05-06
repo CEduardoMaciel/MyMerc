@@ -17,7 +17,7 @@ interface Item {
   id: string;
   name: string;
   quantidade: string;
-  grupo: 'Alimentício' | 'Higiene';
+  grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas';
   status: 'pending' | 'confirmed' | 'not_purchased';
   isConfirming?: boolean;
   isConfirmed?: boolean;

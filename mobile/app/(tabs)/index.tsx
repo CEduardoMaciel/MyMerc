@@ -13,7 +13,7 @@ interface Item {
   id: string;
   name: string;
   quantidade: string;
-  grupo: 'Alimentício' | 'Higiene'; // Assumindo que estes são os únicos dois grupos
+  grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas'; 
   // Adiciona status para consistência se os itens forem passados para a tela de confirmação
   // status?: 'pending' | 'confirmed' | 'not_purchased';
   // isConfirming?: boolean;
