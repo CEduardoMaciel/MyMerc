@@ -47,8 +47,8 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
       const oldCreds = await SecureStore.getItemAsync(USER_CRED_KEY);
       if (list.length === 0) {
         if (oldCreds) {
-          const { u } = JSON.parse(oldCreds);
-          list = [u];
+          const parsed = JSON.parse(oldCreds);
+          if (parsed?.u) list = [parsed.u];
         } else {
           list = ['Admin']; // Perfil padrão inicial
         }
@@ -170,7 +170,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   };
 
   const handleCreateProfile = async () => {
-    const lowerUsername = username.trim().toLowerCase();
+    const lowerUsername = username.trim();
     if (!lowerUsername) {
       Alert.alert('Atenção', 'Digite um nome para o perfil');
       return;
@@ -182,7 +182,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
         return;
       }
 
-      const newList = [...profiles, lowerUsername];
+      const newList = [...profiles, lowerUsername.toLowerCase()];
       await SecureStore.setItemAsync(PROFILES_KEY, JSON.stringify(newList));
       setProfiles(newList);
       

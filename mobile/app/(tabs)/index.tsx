@@ -52,6 +52,8 @@ const groupIcons: Record<Item['grupo'], keyof typeof MaterialIcons.glyphMap> = {
   Escolar: 'school',
 };
 
+let isAppFirstMount = true;
+
 export default function HomeScreen() {
   const [items, setItems] = useState<Item[]>([]);
   const [input, setInput] = useState('');
@@ -61,7 +63,7 @@ export default function HomeScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [userName, setUserName] = useState('');
-  const isReadyToSave = useRef(false);
+  const [isUserContextLoaded, setIsUserContextLoaded] = useState(false);
 
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [editQuantity, setEditQuantity] = useState('');
@@ -81,88 +83,107 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadAuth = async () => {
       try {
+        if (isAppFirstMount) {
+          // Requisito: Nunca entrar já logado ao iniciar o app (Fresh Start).
+          await SecureStore.deleteItemAsync(AUTH_KEY);
+          isAppFirstMount = false;
+        }
+
         const auth = await SecureStore.getItemAsync(AUTH_KEY);
-        setIsLoggedIn(auth === 'true');
         
         if (auth === 'true') {
           const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
-          let uKey = 'Admin';
           if (creds) {
-            const { u } = JSON.parse(creds);
-            uKey = u;
-            setUserName(u.charAt(0).toUpperCase() + u.slice(1));
-            
-            // --- Lógica de Migração para Listas Salvas ---
-            const oldSavedKey = getSavedKeyOld(u);
-            const oldSaved = await SecureStore.getItemAsync(oldSavedKey);
-            if (oldSaved) {
-              const newSavedKey = getSavedKey(u);
-              await SecureStore.setItemAsync(newSavedKey, oldSaved);
-              await SecureStore.deleteItemAsync(oldSavedKey);
-              console.log(`Migrated saved purchases for user ${u} from old key to new key.`);
-              // Após a migração, carrega os dados da nova chave
-              setSavedPurchases(JSON.parse(oldSaved));
-            } else {
-              // Se não houver chave antiga, tenta carregar da nova chave
-              const saved = await SecureStore.getItemAsync(getSavedKey(u));
-              if (saved) {
-                setSavedPurchases(JSON.parse(saved));
-              }
-            }
-          } else {
-            setUserName('Admin');
-          }
+            const parsed = JSON.parse(creds);
+            const u = parsed?.u;
+            if (u) {
+              setUserName(u.charAt(0).toUpperCase() + u.slice(1));
+              
+              // Recarrega os dados do usuário para navegação interna
+              const activeKey = getActiveListKey(u);
+              const storedItems = await SecureStore.getItemAsync(activeKey);
+              if (storedItems) setItems(JSON.parse(storedItems));
 
-          // Carrega itens ativos para este perfil específico
-          const activeKey = getActiveListKey(uKey);
-          const storedItems = await SecureStore.getItemAsync(activeKey);
-          if (storedItems) {
-            setItems(JSON.parse(storedItems));
+              const savedKey = getSavedKey(u);
+              const storedSaved = await SecureStore.getItemAsync(savedKey);
+              if (storedSaved) setSavedPurchases(JSON.parse(storedSaved));
+
+              setIsLoggedIn(true);
+              setIsUserContextLoaded(true);
+              return;
+            }
           }
-          isReadyToSave.current = true;
         }
+        
+        setIsLoggedIn(false);
+        setIsUserContextLoaded(false);
       } catch (error) {
-        console.error('Erro ao carregar estado de login:', error);
+        console.error('Erro ao carregar sessão:', error);
+        setIsLoggedIn(false);
       } finally {
         setIsAuthLoading(false);
       }
     };
-
     loadAuth();
   }, []);
 
   useEffect(() => {
-    const saveItems = async () => {
-      if (!isLoggedIn || !userName || !isReadyToSave.current) return;
+    const persistActiveList = async () => {
+      if (!isLoggedIn || !userName || !isUserContextLoaded) return;
+      
       try {
-        const activeKey = getActiveListKey(userName);
+        const activeKey = getActiveListKey(userName.toLowerCase());
         await SecureStore.setItemAsync(activeKey, JSON.stringify(items));
       } catch (error) {
         console.error('Erro ao salvar lista:', error);
       }
     };
-    saveItems();
-  }, [items, userName, isLoggedIn]);
+    persistActiveList();
+  }, [items, userName, isLoggedIn, isUserContextLoaded]);
 
   const handleLoginSuccess = async () => {
     try {
       await SecureStore.setItemAsync(AUTH_KEY, 'true');
-      setIsLoggedIn(true);
       const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
       if (creds) {
-        const { u } = JSON.parse(creds);
+        const parsed = JSON.parse(creds);
+        const u = parsed?.u;
+        if (!u) throw new Error("Usuário não encontrado nas credenciais");
+
         setUserName(u.charAt(0).toUpperCase() + u.slice(1));
         
-        // Carrega a lista do usuário ao logar
+        // --- Migração Segura (Evitando Invalid Key) ---
+        try {
+          const oldKey = `saved_purchases_${u.toLowerCase()}`;
+          // Apenas tenta ler se a chave antiga for estritamente alfanumérica/válida
+          if (oldKey && !/\s/.test(oldKey)) {
+            const oldData = await SecureStore.getItemAsync(oldKey);
+            if (oldData) {
+              await SecureStore.setItemAsync(getSavedKey(u), oldData);
+              await SecureStore.deleteItemAsync(oldKey);
+            }
+          }
+        } catch (e) { /* Migração falhou ou chave era inválida, ignora silenciosamente */ }
+
+        // --- Carregamento de Dados do Usuário ---
         const activeKey = getActiveListKey(u);
         const storedItems = await SecureStore.getItemAsync(activeKey);
         if (storedItems) {
           setItems(JSON.parse(storedItems));
         }
-        isReadyToSave.current = true;
+
+        const savedKey = getSavedKey(u);
+        const storedSaved = await SecureStore.getItemAsync(savedKey);
+        if (storedSaved) {
+          setSavedPurchases(JSON.parse(storedSaved));
+        }
+        
+        setIsLoggedIn(true);
+        setIsUserContextLoaded(true);
       } else {
         setUserName('Admin');
-        isReadyToSave.current = true;
+        setIsLoggedIn(true);
+        setIsUserContextLoaded(true);
       }
     } catch (error) {
       console.error('Erro ao salvar login:', error);
@@ -171,13 +192,7 @@ export default function HomeScreen() {
 
   const handleLogout = async () => {
     try {
-      const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
-      if (creds) {
-        const { u } = JSON.parse(creds);
-        await SecureStore.deleteItemAsync(getActiveListKey(u));
-      }
-      
-      isReadyToSave.current = false;
+      setIsUserContextLoaded(false); // Reset on logout
       await SecureStore.deleteItemAsync(AUTH_KEY);
       setItems([]); // Limpa os itens do estado local
       setSavedPurchases([]); // Limpa as listas salvas da visão atual

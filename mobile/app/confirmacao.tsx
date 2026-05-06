@@ -125,7 +125,7 @@ const SummaryModal = ({ visible, summary, onClose, onGoHome }: {
           <Text style={{ fontSize: 16, marginBottom: 15 }}>Itens restantes: {summary.remainingItems}</Text>
 
           <TouchableOpacity style={styles.addBtn} onPress={onGoHome}>
-            <Text style={styles.addBtnText}>Voltar para o Início</Text>
+            <Text style={styles.addBtnText}>Nova Lista / Inclusão</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -226,25 +226,30 @@ export default function ConfirmacaoScreen() {
 
   // Salva a lista sempre que houver alterações no status ou quantidade
   useEffect(() => {
-    const saveItems = async () => {
-      if (shoppingList.length > 0) {
+    const persistCurrentProgress = async () => {
+      try {
         const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
         const user = creds ? JSON.parse(creds).u : 'admin';
         const activeKey = getActiveListKey(user);
-        await SecureStore.setItemAsync(activeKey, JSON.stringify(shoppingList));
+
+        if (shoppingList.length > 0) {
+          await SecureStore.setItemAsync(activeKey, JSON.stringify(shoppingList));
+        }
+      } catch (error) {
+        console.error('Erro ao salvar progresso:', error);
       }
     };
-    saveItems();
+    persistCurrentProgress();
   }, [shoppingList]);
-
-  const sortedActiveItems = useMemo(() => {
-    const list = shoppingList.filter(item => item.status === 'pending' || item.status === 'confirmed');
-    return sortBy === 'group' ? list.sort((a, b) => a.grupo.localeCompare(b.grupo)) : list;
-  }, [shoppingList, sortBy]);
 
   const sortedNotPurchasedItems = useMemo(() => {
     const list = shoppingList.filter(item => item.status === 'not_purchased');
     return sortBy === 'group' ? list.sort((a, b) => a.grupo.localeCompare(b.grupo)) : list;
+  }, [shoppingList, sortBy]);
+
+  const sortedActiveItems = useMemo(() => {
+    const list = shoppingList.filter(item => item.status === 'pending' || item.status === 'confirmed');
+    return sortBy === 'group' ? [...list].sort((a, b) => a.grupo.localeCompare(b.grupo)) : list;
   }, [shoppingList, sortBy]);
 
   const handleConfirmItem = (id: string) => {
