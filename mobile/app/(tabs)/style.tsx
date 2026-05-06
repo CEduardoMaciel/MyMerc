@@ -1,0 +1,120 @@
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        padding: 16,
+        backgroundColor: '#f5f5f5',
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 16,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        fontSize: 16,
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 12,
+        backgroundColor: '#fff',
+    },
+    buttonGroup: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 12,
+    },
+    groupBtn: {
+        flex: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        backgroundColor: '#e0e0e0',
+        alignItems: 'center',
+    },
+    groupBtnActive: {
+        backgroundColor: '#007AFF',
+    },
+    groupBtnText: {
+        fontWeight: '600',
+        color: '#333',
+    },
+    addBtn: {
+        backgroundColor: '#007AFF',
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    addBtnText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    list: {
+        flex: 1,
+    },
+    itemContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 8,
+    },
+    itemContent: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    badge: {
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 6,
+    },
+    badgeText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    itemText: {
+        fontSize: 16,
+    },
+    deleteBtn: {
+        fontSize: 20,
+        color: '#FF6B6B',
+        fontWeight: 'bold',
+    },
+    suggestionBox: {
+        position: 'absolute',
+        top: 55,
+        left: 0,
+        right: 0,
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        zIndex: 1000,
+    },
+    suggestionItem: {
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    quantidadeText: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        fontSize: 16,
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 12,
+        backgroundColor: '#fff',
+    },
+});
