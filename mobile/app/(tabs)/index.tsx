@@ -6,38 +6,20 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { styles } from './style';
 import { sugestoes } from './constants';
-import { Logo } from '../../components/logo';
+import { Logo } from '@/components/logo';
 import SplashScreen from '../SplashScreen';
+import { AUTH_KEY, USER_CRED_KEY, getSavedKey, getActiveListKey, formatDecimal } from '../utils';
 
 interface Item {
   id: string;
   name: string;
   quantidade: string;
   grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas' | 'Padaria' | 'Bebidas' | 'PetShop' | 'Utilidades' | 'Escolar' | 'Outros'; 
-  // Adiciona status para consistência se os itens forem passados para a tela de confirmação
-  // status?: 'pending' | 'confirmed' | 'not_purchased';
-  // isConfirming?: boolean;
 }
 
-const STORAGE_KEY = 'shoppingList';
-const AUTH_KEY = 'isLoggedIn';
-const USER_CRED_KEY = 'userCredentials';
-const getSavedKey = (user: string) => {
-  const sanitized = (user || 'default').toLowerCase().replace(/[^a-z0-9]/g, '');
-  return `savedPurchases${sanitized}`;
-};
-const getActiveListKey = (user: string) => {
-  const sanitized = (user || 'default').toLowerCase().replace(/[^a-z0-9]/g, '');
-  return `activeList${sanitized}`;
-};
-const formatDecimal = (val: string) => {
-  if (!val) return '0.00';
-  const num = parseFloat(val.replace(',', '.'));
-  return isNaN(num) ? '0.00' : num.toFixed(2);
-};
-
-const getSavedKeyOld = (user: string) => {
-  return `saved_purchases_${user.toLowerCase()}`; // Formato da chave antiga (sem sanitização)
+// Helper function to remove diacritics and normalize string for comparison
+const normalizeString = (str: string) => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 };
 
 const groupIcons: Record<Item['grupo'], keyof typeof MaterialIcons.glyphMap> = {
@@ -53,18 +35,17 @@ const groupIcons: Record<Item['grupo'], keyof typeof MaterialIcons.glyphMap> = {
   Outros: 'category',
 };
 
-let isAppFirstMount = true;
-
 export default function HomeScreen() {
   const [items, setItems] = useState<Item[]>([]);
   const [input, setInput] = useState('');
   const [quantidade, setQuantidade] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [sortBy, setSortBy] = useState<'none' | 'group'>('none');
+  const [sortBy, setSortBy] = useState<'none' | 'alphabetical'>('none');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [userName, setUserName] = useState('');
   const [isUserContextLoaded, setIsUserContextLoaded] = useState(false);
+  const isAppFirstMount = useRef(true);
 
   const [isGroupModalVisible, setIsGroupModalVisible] = useState(false);
   const [pendingItemName, setPendingItemName] = useState('');
@@ -82,16 +63,17 @@ export default function HomeScreen() {
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
   const [previewData, setPreviewData] = useState<{name: string, items: Item[]} | null>(null);
 
+  const quantidadeInputRef = useRef<TextInput>(null);
   const router = useRouter();
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        if (isAppFirstMount) {
+        if (isAppFirstMount.current) {
           // Requisito: Nunca entrar já logado ao iniciar o app (Fresh Start).
           await SecureStore.deleteItemAsync(AUTH_KEY);
-          isAppFirstMount = false;
+          isAppFirstMount.current = false;
         }
 
         const auth = await SecureStore.getItemAsync(AUTH_KEY);
@@ -248,6 +230,7 @@ export default function HomeScreen() {
       setQuantidade('');
       setShowSuggestions(false);
       inputRef.current?.focus();
+      quantidadeInputRef.current?.blur(); // Garante que o teclado feche se estava no campo de quantidade
     } else {
       setPendingItemName(inputValue);
       setPendingItemQuantity(quantidade);
@@ -269,8 +252,8 @@ export default function HomeScreen() {
     setPendingItemName('');
     setPendingItemQuantity('');
     setIsGroupModalVisible(false);
-    setShowSuggestions(false);
     inputRef.current?.focus();
+    setShowSuggestions(false);
   };
 
   const handleDeleteItem = (item: Item) => {
@@ -376,28 +359,43 @@ export default function HomeScreen() {
       params: { sortBy }
     });
   };
-
-  const handleSortChange = (value: 'none' | 'group') => {
-    setSortBy(value);
+  
+  const handleSortChange = () => {
+    setSortBy(prev => prev === 'alphabetical' ? 'none' : 'alphabetical');
   };
-
+  
   const filteredSuggestions = useMemo(() => {
     if (!input.trim()) {
       return [];
     }
-
-    const query = input.toLowerCase();
-    return Object.entries(sugestoes)
-      .flatMap(([grupo, itens]) => itens.map((item) => ({ item, grupo } as const)))
-      .filter(({ item }) => item.toLowerCase().includes(query))
-      .slice(0, 6);
+  
+    const query = normalizeString(input.trim().toLowerCase());
+    const allSuggestions = Object.entries(sugestoes)
+      .flatMap(([grupo, itens]) => itens.map((item) => ({ item, grupo } as const)));
+  
+    const startsWithMatches: { item: string; grupo: string }[] = [];
+    const includesMatches: { item: string; grupo: string }[] = [];
+  
+    allSuggestions.forEach(({ item, grupo }) => {
+      const normalizedItem = normalizeString(item.toLowerCase());
+      if (normalizedItem.startsWith(query)) {
+        startsWithMatches.push({ item, grupo });
+      } else if (normalizedItem.includes(query)) {
+        includesMatches.push({ item, grupo });
+      }
+    });
+  
+    // Combine startsWith matches first, then includes matches, and limit to 6
+    return [...startsWithMatches, ...includesMatches].slice(0, 6);
   }, [input]);
 
   const sortedItems = useMemo(() => {
-    if (sortBy === 'group') {
-      return [...items].sort((a, b) => a.grupo.localeCompare(b.grupo));
-    }
-    return items;
+    return [...items].sort((a, b) => {
+      const groupComparison = a.grupo.localeCompare(b.grupo);
+      if (groupComparison !== 0) return groupComparison;
+      if (sortBy === 'alphabetical') return a.name.localeCompare(b.name);
+      return 0;
+    });
   }, [items, sortBy]);
 
   if (isAuthLoading) {
@@ -459,6 +457,7 @@ export default function HomeScreen() {
                 onPress={() => {
                   setInput(item);
                   setShowSuggestions(false);
+                  quantidadeInputRef.current?.focus(); // Foca na quantidade após selecionar a sugestão
                 }}>
                 <Text>{item}</Text>
               </TouchableOpacity>
@@ -469,10 +468,12 @@ export default function HomeScreen() {
 
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
           <TextInput
+            ref={quantidadeInputRef}
             style={[styles.quantidadeText, { width: 110 }]}
             placeholder="Quantidade"
             value={quantidade}
             onChangeText={setQuantidade}
+            onFocus={() => setShowSuggestions(false)} // Esconde sugestões ao focar na quantidade
             keyboardType="numeric"
           />
           <TouchableOpacity style={[styles.addBtn, { backgroundColor: '#4CAF50' }]} onPress={handleAddItem}>
@@ -493,18 +494,18 @@ export default function HomeScreen() {
           textShadowRadius: 10 
         }]}>Sua lista</Text>
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          <TouchableOpacity onPress={handleDeleteAll} style={{ padding: 5 }}>
-            <MaterialIcons name="delete-sweep" size={28} color="#F44336" />
-          </TouchableOpacity>
           <TouchableOpacity 
-            onPress={() => handleSortChange(sortBy === 'group' ? 'none' : 'group')}
+            onPress={handleSortChange}
             style={{ padding: 5 }}
           >
             <MaterialIcons 
               name="sort" 
               size={28} 
-              color={sortBy === 'group' ? '#4CAF50' : '#333'} 
+              color={sortBy === 'alphabetical' ? '#4CAF50' : '#333'} 
             />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDeleteAll} style={{ padding: 5 }}>
+            <MaterialIcons name="delete-sweep" size={28} color="#F44336" />
           </TouchableOpacity>
         </View>
       </View>
@@ -513,7 +514,7 @@ export default function HomeScreen() {
         data={sortedItems}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => {
-          const showHeader = sortBy === 'group' && (index === 0 || sortedItems[index - 1].grupo !== item.grupo);
+          const showHeader = index === 0 || sortedItems[index - 1].grupo !== item.grupo;
           return (
             <View>
               {showHeader && (
@@ -626,7 +627,7 @@ export default function HomeScreen() {
               style={[styles.input, { width: '100%' }]}
               value={saveName}
               onChangeText={setSaveName}
-              placeholder="Ex: Rancho do Mês"
+              placeholder="Ex: Lista 1"
               autoFocus
             />
             <Text style={{ fontSize: 12, color: '#666', marginTop: 5 }}>

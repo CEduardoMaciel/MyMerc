@@ -176,6 +176,11 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
       return;
     }
 
+    if (lowerUsername.toLowerCase() === 'admin') {
+      Alert.alert('Atenção', 'O nome "Admin" é reservado para o sistema.');
+      return;
+    }
+
     try {
       if (profiles.includes(lowerUsername)) {
         Alert.alert('Atenção', 'Este perfil já existe.');
@@ -198,17 +203,56 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
     }
   };
 
+  const handleDeleteProfile = (profileToDelete: string) => {
+    Alert.alert(
+      'Excluir Perfil',
+      `Tem certeza que deseja excluir o perfil "${profileToDelete.charAt(0).toUpperCase() + profileToDelete.slice(1)}"?\n\nIsso apagará permanentemente a lista atual e as listas salvas deste usuário.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Excluir', 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              const newList = profiles.filter(p => p !== profileToDelete);
+              await SecureStore.setItemAsync(PROFILES_KEY, JSON.stringify(newList));
+              
+              // Limpa os dados vinculados ao perfil para economizar espaço
+              const sanitized = profileToDelete.toLowerCase().replace(/[^a-z0-9]/g, '');
+              await SecureStore.deleteItemAsync(`activeList${sanitized}`);
+              await SecureStore.deleteItemAsync(`savedPurchases${sanitized}`);
+              
+              setProfiles(newList);
+            } catch (error) {
+              console.error('Erro ao excluir:', error);
+              Alert.alert('Erro', 'Não foi possível excluir o perfil');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderProfileItem = ({ item }: { item: string }) => (
-    <TouchableOpacity 
-      style={localStyles.profileCard} 
-      onPress={() => handleSelectProfile(item)}
-    >
-      <View style={localStyles.profileIcon}>
-        <MaterialIcons name="person" size={24} color="#4CAF50" />
-      </View>
-      <Text style={localStyles.profileName}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
-      <MaterialIcons name="chevron-right" size={24} color="#ccc" />
-    </TouchableOpacity>
+    <View style={localStyles.profileItemContainer}>
+      <TouchableOpacity 
+        style={localStyles.profileCard} 
+        onPress={() => handleSelectProfile(item)}
+      >
+        <View style={localStyles.profileIcon}>
+          <MaterialIcons name="person" size={24} color="#4CAF50" />
+        </View>
+        <Text style={localStyles.profileName}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
+        <MaterialIcons name="chevron-right" size={24} color="#ccc" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        onPress={() => handleDeleteProfile(item)}
+        style={localStyles.deleteProfileBtn}
+      >
+        <MaterialIcons name="remove-circle-outline" size={22} color="#F44336" />
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -261,7 +305,12 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             alignItems: 'center',
             zIndex: 10 // Garante que fica por cima
           }}>
-          <Text style={localStyles.logoText}>MyMerc</Text>
+            <TouchableOpacity 
+              activeOpacity={1} 
+              onLongPress={() => handleSelectProfile('Admin')}
+            >
+              <Text style={localStyles.logoText}>MyMerc</Text>
+            </TouchableOpacity>
             <Text style={localStyles.tagline}>Suas compras em ordem</Text>
           </Animated.View>
         </Animated.View>
@@ -307,7 +356,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             <View style={{ flex: 1 }}>
               <Text style={localStyles.sectionTitle}>Escolha seu Perfil</Text>
               <FlatList
-                data={profiles}
+                data={profiles.filter(p => p.toLowerCase() !== 'admin')}
                 renderItem={renderProfileItem}
                 keyExtractor={item => item}
                 style={{ marginBottom: 15 }}
@@ -431,15 +480,26 @@ const localStyles = StyleSheet.create({
     marginBottom: 15,
     textAlign: 'center'
   },
+  profileItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
   profileCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f9f9f9',
     padding: 12,
     borderRadius: 12,
-    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#eee'
+  },
+  deleteProfileBtn: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileIcon: {
     width: 36,

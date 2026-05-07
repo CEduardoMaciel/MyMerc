@@ -111,7 +111,7 @@ const SummaryModal = ({ visible, summary, onClose, onGoHome }: {
           <Text style={{ fontSize: 16, marginBottom: 15 }}>Itens restantes: {summary.remainingItems}</Text>
 
           <TouchableOpacity style={styles.addBtn} onPress={onGoHome}>
-            <Text style={styles.addBtnText}>Nova Lista / Inclusão</Text>
+            <Text style={styles.addBtnText}>Reiniciar</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -168,7 +168,7 @@ export default function ConfirmacaoScreen() {
   useKeepAwake(); // Mantém a tela ligada enquanto esta tela estiver aberta
 
   const router = useRouter();
-  const { sortBy } = useLocalSearchParams<{ sortBy: 'none' | 'group' }>();
+  const { sortBy } = useLocalSearchParams<{ sortBy: 'none' | 'alphabetical' }>();
   const [shoppingList, setShoppingList] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -230,12 +230,22 @@ export default function ConfirmacaoScreen() {
 
   const sortedNotPurchasedItems = useMemo(() => {
     const list = shoppingList.filter(item => item.status === 'not_purchased');
-    return sortBy === 'group' ? list.sort((a, b) => a.grupo.localeCompare(b.grupo)) : list;
+    return [...list].sort((a, b) => {
+      const groupCompare = a.grupo.localeCompare(b.grupo);
+      if (groupCompare !== 0) return groupCompare;
+      if (sortBy === 'alphabetical') return a.name.localeCompare(b.name);
+      return 0;
+    });
   }, [shoppingList, sortBy]);
 
   const sortedActiveItems = useMemo(() => {
     const list = shoppingList.filter(item => item.status === 'pending' || item.status === 'confirmed');
-    return sortBy === 'group' ? [...list].sort((a, b) => a.grupo.localeCompare(b.grupo)) : list;
+    return [...list].sort((a, b) => {
+      const groupCompare = a.grupo.localeCompare(b.grupo);
+      if (groupCompare !== 0) return groupCompare;
+      if (sortBy === 'alphabetical') return a.name.localeCompare(b.name);
+      return 0;
+    });
   }, [shoppingList, sortBy]);
 
   const handleConfirmItem = (id: string) => {
@@ -314,8 +324,10 @@ export default function ConfirmacaoScreen() {
         return;
       }
 
-      // Salvamos o estado original dos itens para que possam ser reusados como "pendentes" no futuro
-      const itemsToSave = shoppingList.map(i => ({ ...i, status: 'pending', isConfirmed: false, isConfirming: false }));
+      // Filtra apenas os itens comprados e reseta o estado para uso futuro
+      const itemsToSave = shoppingList
+        .filter(item => item.status === 'confirmed')
+        .map(i => ({ ...i, status: 'pending', isConfirmed: false, isConfirming: false }));
       savedLists.push({ name: saveName.trim(), items: itemsToSave });
       
       await SecureStore.setItemAsync(key, JSON.stringify(savedLists));
@@ -339,14 +351,18 @@ export default function ConfirmacaoScreen() {
         remainingItems: remaining,
       });
       
-      Alert.alert(
-        'Salvar Lista?',
-        'Deseja salvar esta lista de compras para usar novamente no futuro?',
-        [
-          { text: 'Não', onPress: () => setShowSummaryModal(true) },
-          { text: 'Sim, Salvar', onPress: () => setIsSaveModalVisible(true) }
-        ]
-      );
+      if (confirmed > 0) {
+        Alert.alert(
+          'Salvar Itens Comprados?',
+          'Deseja salvar apenas os itens comprados para usar em uma lista futura?',
+          [
+            { text: 'Não', onPress: () => setShowSummaryModal(true) },
+            { text: 'Sim, Salvar', onPress: () => setIsSaveModalVisible(true) }
+          ]
+        );
+      } else {
+        setShowSummaryModal(true);
+      }
     };
 
     if (confirmed === 0) {
@@ -417,7 +433,7 @@ export default function ConfirmacaoScreen() {
         data={sortedActiveItems}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => {
-          const showHeader = sortBy === 'group' && (index === 0 || sortedActiveItems[index - 1].grupo !== item.grupo);
+          const showHeader = index === 0 || sortedActiveItems[index - 1].grupo !== item.grupo;
           return (
             <View>
               {showHeader && (
@@ -446,7 +462,6 @@ export default function ConfirmacaoScreen() {
                     <View style={{ marginTop: 4 }}>
                       <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }, (item.status === 'confirmed' || item.isConfirming) && { color: '#155724' }]}>Qtd: {formatDecimal(item.quantidade)}</Text>
                     </View>
-                    {sortBy !== 'group' && <Text style={{ fontSize: 12, color: '#666' }}>{item.grupo}</Text>}
                   </View>
                   <View style={{ flexDirection: 'row' }}>
                     {item.status === 'confirmed' || item.isConfirming ? (
@@ -508,12 +523,15 @@ export default function ConfirmacaoScreen() {
       <Modal visible={isSaveModalVisible} transparent animationType="slide">
         <View style={localStyles.modalOverlay}>
           <View style={localStyles.modalContent}>
-            <Text style={[styles.title, { fontSize: 22, color: '#1B5E20' }]}>Salvar esta Compra</Text>
+            <Text style={[styles.title, { fontSize: 22, color: '#1B5E20' }]}>Salvar Itens Comprados</Text>
+            <Text style={{ marginBottom: 15, textAlign: 'center', color: '#666' }}>
+              Dê um nome para salvar apenas os itens que você marcou como comprados nesta lista.
+            </Text>
             <TextInput
               style={[styles.input, { width: '100%' }]}
               value={saveName}
               onChangeText={setSaveName}
-              placeholder="Ex: Compras Semanal"
+              placeholder="Ex: Lista 1"
               autoFocus
             />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
@@ -521,7 +539,7 @@ export default function ConfirmacaoScreen() {
                 style={[styles.addBtn, { flex: 1, backgroundColor: '#ccc' }]} 
                 onPress={() => { setIsSaveModalVisible(false); setShowSummaryModal(true); }}
               >
-                <Text style={styles.addBtnText}>Pular</Text>
+                <Text style={styles.addBtnText}>Finalizar</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50' }]} 
