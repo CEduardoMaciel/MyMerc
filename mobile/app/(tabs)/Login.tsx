@@ -3,9 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialIcons } from '@expo/vector-icons';
-import { styles } from './style';
+import { styles } from './style'; // Assuming this path is correct
+import { AUTH_KEY } from '../utils'; // Importar AUTH_KEY de utils
 
-const AUTH_KEY = 'isLoggedIn';
 
 interface LoginScreenProps {
   onLogin?: () => void;

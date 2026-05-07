@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 
 export const USER_CRED_KEY = 'userCredentials';
 export const AUTH_KEY = 'isLoggedIn';
+export const PROFILES_KEY = 'myMercProfilesList';
 
 export const getSavedKey = (user: string) => {
   const sanitized = (user || 'default').toLowerCase().replace(/[^a-z0-9]/g, '');
