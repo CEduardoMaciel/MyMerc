@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import { setItemAsync, getItemAsync } from 'expo-secure-store';
 import { USER_CRED_KEY, getSavedKey } from './app/utils'; // Assuming this path is correct
 import { Item } from './constants'; // Assuming this path is correct
 
@@ -62,7 +62,7 @@ export const useSavedLists = ({
     const newList = [...savedPurchases, { name: saveName.trim(), items }];
     const user = userName.toLowerCase(); // Use the userName from props
     
-    await SecureStore.setItemAsync(getSavedKey(user), JSON.stringify(newList));
+    await setItemAsync(getSavedKey(user), JSON.stringify(newList));
     setSavedPurchases(newList);
     setIsSaveModalVisible(false);
     setSaveName('');
@@ -91,7 +91,7 @@ export const useSavedLists = ({
       { text: 'Excluir', style: 'destructive', onPress: async () => {
         const newList = savedPurchases.filter(p => p.name !== listName);
         const user = userName.toLowerCase(); // Use the userName from props
-        await SecureStore.setItemAsync(getSavedKey(user), JSON.stringify(newList));
+        await setItemAsync(getSavedKey(user), JSON.stringify(newList));
         setSavedPurchases(newList);
       }}
     ]);

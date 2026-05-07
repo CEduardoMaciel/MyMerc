@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { LayoutAnimation, Alert } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import { getItemAsync, setItemAsync } from 'expo-secure-store';
 import { USER_CRED_KEY, getActiveListKey, getSavedKey, formatDecimal } from './app/utils';
 import { Item as BaseItem } from './constants'; 
 
@@ -77,11 +77,11 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
 
   useEffect(() => {
     const loadItems = async () => {
-      const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+      const creds = await getItemAsync(USER_CRED_KEY);
       const user = creds ? JSON.parse(creds).u : 'admin';
       const activeKey = getActiveListKey(user);
 
-      const stored = await SecureStore.getItemAsync(activeKey);
+      const stored = await getItemAsync(activeKey);
       if (stored) {
         const parsedItems: Item[] = JSON.parse(stored).map((item: Item) => ({
           ...item,
@@ -101,12 +101,12 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
   useEffect(() => {
     const persistCurrentProgress = async () => {
       try {
-        const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+        const creds = await getItemAsync(USER_CRED_KEY);
         const user = creds ? JSON.parse(creds).u : 'admin';
         const activeKey = getActiveListKey(user);
 
         if (shoppingList.length > 0) {
-          await SecureStore.setItemAsync(activeKey, JSON.stringify(shoppingList));
+          await setItemAsync(activeKey, JSON.stringify(shoppingList));
         }
       } catch (error) {
         console.error('Erro ao salvar progresso:', error);
@@ -179,11 +179,11 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
     }
 
     try {
-      const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+      const creds = await getItemAsync(USER_CRED_KEY);
       const user = creds ? JSON.parse(creds).u : 'admin';
       const key = getSavedKey(user);
 
-      const saved = await SecureStore.getItemAsync(key);
+      const saved = await getItemAsync(key);
       let savedLists = saved ? JSON.parse(saved) : [];
 
       if (savedLists.some((p: any) => p.name.toLowerCase() === saveName.trim().toLowerCase())) {
@@ -203,7 +203,7 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
         .map(i => ({ ...i, status: 'pending', isConfirmed: false, isConfirming: false }));
       savedLists.push({ name: saveName.trim(), items: itemsToSave });
 
-      await SecureStore.setItemAsync(key, JSON.stringify(savedLists));
+      await setItemAsync(key, JSON.stringify(savedLists));
       setIsSaveModalVisible(false);
       setShowSummaryModal(true);
     } catch (e) {

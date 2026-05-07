@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { getItemAsync, setItemAsync, deleteItemAsync } from 'expo-secure-store';
 import { AUTH_KEY, USER_CRED_KEY, getActiveListKey, getSavedKey } from './app/utils';
 import { Item } from './constants'; // Assuming Item interface is shared
 
@@ -34,10 +34,10 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
           isAppFirstMount.current = false;
         }
 
-        const auth = await SecureStore.getItemAsync(AUTH_KEY);
+        const auth = await getItemAsync(AUTH_KEY);
 
         if (auth === 'true') {
-          const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+          const creds = await getItemAsync(USER_CRED_KEY);
           if (creds) {
             const parsed = JSON.parse(creds);
             const u = parsed?.u;
@@ -45,11 +45,11 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
               setUserName(u.charAt(0).toUpperCase() + u.slice(1));
 
               const activeKey = getActiveListKey(u);
-              const storedItems = await SecureStore.getItemAsync(activeKey);
+              const storedItems = await getItemAsync(activeKey);
               if (storedItems) setItems(JSON.parse(storedItems));
 
               const savedKey = getSavedKey(u);
-              const storedSaved = await SecureStore.getItemAsync(savedKey);
+              const storedSaved = await getItemAsync(savedKey);
               if (storedSaved) setSavedPurchases(JSON.parse(storedSaved));
 
               setIsLoggedIn(true);
@@ -77,7 +77,7 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
 
       try {
         const activeKey = getActiveListKey(userName.toLowerCase());
-        await SecureStore.setItemAsync(activeKey, JSON.stringify(items));
+        await setItemAsync(activeKey, JSON.stringify(items));
       } catch (error) {
         console.error('Erro ao salvar lista:', error);
       }
@@ -87,8 +87,8 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
 
   const handleLoginSuccess = async () => {
     try {
-      await SecureStore.setItemAsync(AUTH_KEY, 'true');
-      const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
+      await setItemAsync(AUTH_KEY, 'true');
+      const creds = await getItemAsync(USER_CRED_KEY);
       if (creds) {
         const parsed = JSON.parse(creds);
         const u = parsed?.u;
@@ -100,23 +100,23 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
         try {
           const oldKey = `saved_purchases_${u.toLowerCase()}`;
           if (oldKey && !/\s/.test(oldKey)) {
-            const oldData = await SecureStore.getItemAsync(oldKey);
+            const oldData = await getItemAsync(oldKey);
             if (oldData) {
-              await SecureStore.setItemAsync(getSavedKey(u), oldData);
-              await SecureStore.deleteItemAsync(oldKey);
+              await setItemAsync(getSavedKey(u), oldData);
+              await deleteItemAsync(oldKey);
             }
           }
         } catch (e) { /* Migração falhou ou chave era inválida, ignora silenciosamente */ }
 
         // --- Carregamento de Dados do Usuário ---
         const activeKey = getActiveListKey(u);
-        const storedItems = await SecureStore.getItemAsync(activeKey);
+        const storedItems = await getItemAsync(activeKey);
         if (storedItems) {
           setItems(JSON.parse(storedItems));
         }
 
         const savedKey = getSavedKey(u);
-        const storedSaved = await SecureStore.getItemAsync(savedKey);
+        const storedSaved = await getItemAsync(savedKey);
         if (storedSaved) {
           setSavedPurchases(JSON.parse(storedSaved));
         }
@@ -136,7 +136,7 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
   const handleLogout = async () => {
     try {
       setIsUserContextLoaded(false);
-      await SecureStore.deleteItemAsync(AUTH_KEY);
+      await deleteItemAsync(AUTH_KEY);
       setItems([]);
       setSavedPurchases([]);
       setUserName('');

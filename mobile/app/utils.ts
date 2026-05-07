@@ -1,5 +1,3 @@
-import * as SecureStore from 'expo-secure-store';
-
 export const USER_CRED_KEY = 'userCredentials';
 export const AUTH_KEY = 'isLoggedIn';
 export const PROFILES_KEY = 'myMercProfilesList';
