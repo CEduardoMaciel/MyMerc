@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.ceduardomaciel1602.mobile"
+      "package": "com.ceduardomaciel1602.mobile",
+      "jsEngine": "hermes"
     },
     "web": {
       "output": "static",

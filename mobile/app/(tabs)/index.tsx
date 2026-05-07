@@ -71,8 +71,6 @@ export default function HomeScreen() {
     const loadAuth = async () => {
       try {
         if (isAppFirstMount.current) {
-          // Requisito: Nunca entrar já logado ao iniciar o app (Fresh Start).
-          await SecureStore.deleteItemAsync(AUTH_KEY);
           isAppFirstMount.current = false;
         }
 
