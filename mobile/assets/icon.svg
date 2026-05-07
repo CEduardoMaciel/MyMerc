@@ -1,0 +1,13 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo Branco -->
+  <rect width="1024" height="1024" rx="160" fill="white"/>
+  
+  <!-- Ícone do Carrinho (Material Design style) -->
+  <path d="M350 800C322.4 800 300 822.4 300 850C300 877.6 322.4 900 350 900C377.6 900 400 877.6 400 850C400 822.4 377.6 800 350 800ZM750 800C722.4 800 700 822.4 700 850C700 877.6 722.4 900 750 900C777.6 900 800 877.6 800 850C800 822.4 777.6 800 750 800ZM360.4 200L402.4 280H900C922 280 940 298 940 320C940 327.2 937.6 334 933.2 340L786.4 606.8C774.8 628.4 751.6 640 726.8 640H473.6L450.4 680H850V760H350C328 760 310 742 310 720C310 712.8 312.4 706 316.8 700L366.4 610L190 200H110V120H284L360.4 200Z" fill="#4CAF50"/>
+  
+  <!-- Texto MyMerc -->
+  <text x="512" y="620" font-family="Arial, sans-serif" font-weight="900" font-size="140" fill="#1B5E20" text-anchor="middle" letter-spacing="-5">MyMerc</text>
+  
+  <!-- Tagline -->
+  <text x="512" y="720" font-family="Arial, sans-serif" font-weight="600" font-size="45" fill="#444" text-anchor="middle">Suas compras em ordem</text>
+</svg>
