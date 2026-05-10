@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import { setItemAsync, getItemAsync } from 'expo-secure-store';
-import { USER_CRED_KEY, getSavedKey } from './app/utils'; // Assuming this path is correct
+import { getSavedKey } from './app/utils'; // Assuming this path is correct
 import { Item } from './constants'; // Assuming this path is correct
 
 interface UseSavedListsProps {
@@ -49,13 +49,34 @@ export const useSavedLists = ({
       return;
     }
 
-    if (savedPurchases.some(p => p.name.toLowerCase() === saveName.trim().toLowerCase())) {
-      Alert.alert('Erro', 'Já existe uma compra salva com este nome');
+    if (savedPurchases.length >= 5) {
+      Alert.alert('Limite atingido', 'Você já possui 5 compras salvas. Exclua uma para salvar esta.');
       return;
     }
 
-    if (savedPurchases.length >= 5) {
-      Alert.alert('Limite atingido', 'Você já possui 5 compras salvas. Exclua uma para salvar esta.');
+    const existingListIndex = savedPurchases.findIndex(p => p.name.toLowerCase() === saveName.trim().toLowerCase());
+
+    if (existingListIndex !== -1) {
+      Alert.alert(
+        'Lista Existente',
+        `Já existe uma lista salva com o nome "${saveName.trim()}". Deseja substituí-la?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Substituir',
+            onPress: async () => {
+              const newList = [...savedPurchases];
+              newList[existingListIndex] = { name: saveName.trim(), items };
+              const user = userName.toLowerCase();
+              await setItemAsync(getSavedKey(user), JSON.stringify(newList));
+              setSavedPurchases(newList);
+              setIsSaveModalVisible(false);
+              setSaveName('');
+              Alert.alert('Sucesso', 'Lista substituída com sucesso!');
+            },
+          },
+        ]
+      );
       return;
     }
 

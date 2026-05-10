@@ -1,8 +1,8 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { Alert, TextInput } from 'react-native';
 import { formatDecimal } from './app/utils';
 import { Item } from './constants'; // Assuming this path is correct
-import { sugestoes } from './app/(tabs)/constants';
+import { sugestoes } from './sugestoes';
 
 interface UseShoppingListProps {
   items: Item[];
@@ -176,13 +176,23 @@ export const useShoppingList = ({
 
     const startsWithMatches: { item: string; grupo: string }[] = [];
     const includesMatches: { item: string; grupo: string }[] = [];
+    const seen = new Set<string>();
 
     allSuggestions.forEach(({ item, grupo }) => {
+      if (seen.has(item)) return;
       const normalizedItem = normalizeString(item.toLowerCase());
       if (normalizedItem.startsWith(query)) {
         startsWithMatches.push({ item, grupo });
-      } else if (normalizedItem.includes(query)) {
+        seen.add(item);
+      }
+    });
+
+    allSuggestions.forEach(({ item, grupo }) => {
+      if (seen.has(item)) return;
+      const normalizedItem = normalizeString(item.toLowerCase());
+      if (normalizedItem.includes(query)) {
         includesMatches.push({ item, grupo });
+        seen.add(item);
       }
     });
 

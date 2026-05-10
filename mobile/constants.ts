@@ -4,7 +4,8 @@ export interface Item {
   id: string;
   name: string;
   quantidade: string;
-  grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas' | 'Padaria' | 'Bebidas' | 'PetShop' | 'Utilidades' | 'Escolar' | 'Outros'; 
+  grupo: 'Alimentício' | 'Higiene' | 'Frios' | 'Frutas' | 'Padaria' | 'Bebidas' | 'PetShop' | 'Utilidades' | 'Escolar' | 'Outros';
+  isTemp?: boolean;
 }
 
 export const groupIcons: Record<Item['grupo'], keyof typeof MaterialIcons.glyphMap> = {

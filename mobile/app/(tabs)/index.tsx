@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Logo } from '@/components/logo';
 import SplashScreen from '../SplashScreen';
 import { formatDecimal } from '../utils';
-import { groupIcons } from '../../constants';
+import { groupIcons } from '../../constants'; // Importa groupIcons da raiz
 import { useAuthAndDataLoading } from '../../useAuthAndDataLoading';
 import { useShoppingList } from '../../useShoppingList';
 import { useSavedLists } from '../../useSavedLists';

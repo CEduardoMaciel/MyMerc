@@ -5,7 +5,6 @@ import * as SecureStore from 'expo-secure-store';
 import { AUTH_KEY, USER_CRED_KEY, PROFILES_KEY, getActiveListKey, getSavedKey } from './utils'; // Importar constantes de utils
 
 const { width, height } = Dimensions.get('window');
-const USER_CRED_KEY_OLD = 'user_credentials'; // Chave antiga para credenciais do usuário
 
 export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const cartScale = useRef(new Animated.Value(0.1)).current;

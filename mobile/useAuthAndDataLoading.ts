@@ -21,7 +21,6 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [userName, setUserName] = useState('');
   const [isUserContextLoaded, setIsUserContextLoaded] = useState(false);
-  const isAppFirstMount = useRef(true);
 
   // These setters will be passed to the main component to update its state
   const [items, setItems] = useState<Item[]>([]);
@@ -30,10 +29,6 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        if (isAppFirstMount.current) {
-          isAppFirstMount.current = false;
-        }
-
         const auth = await getItemAsync(AUTH_KEY);
 
         if (auth === 'true') {
