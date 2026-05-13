@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -35,8 +35,9 @@ export default function HomeScreen() {
     editingItem, setEditingItem, editQuantity, setEditQuantity,
     isEditModalVisible, setIsEditModalVisible,
     filteredSuggestions, handleAddItem, finalizeAddItem, handleDeleteItem,
-    openEditModal, handleSaveEdit, handleDeleteAll
-  } = useShoppingList({ items, setItems, inputRef, quantidadeInputRef });
+    openEditModal, handleSaveEdit, handleDeleteAll,
+    displayList, toggleGroup, totalItems
+  } = useShoppingList({ items, setItems, inputRef, quantidadeInputRef, sortBy });
 
   const {
     isSavedListsModalVisible, setIsSavedListsModalVisible, isSaveModalVisible, setIsSaveModalVisible,
@@ -61,15 +62,6 @@ export default function HomeScreen() {
     setSortBy(prev => prev === 'alphabetical' ? 'none' : 'alphabetical');
   };
 
-  const sortedItems = useMemo(() => {
-    return [...items].sort((a, b) => {
-      const groupComparison = a.grupo.localeCompare(b.grupo);
-      if (groupComparison !== 0) return groupComparison;
-      if (sortBy === 'alphabetical') return a.name.localeCompare(b.name);
-      return 0;
-    });
-  }, [items, sortBy]);
-
   if (isAuthLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -91,7 +83,7 @@ export default function HomeScreen() {
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
         <Text style={{ fontSize: 20, fontWeight: '900', color: '#1B5E20' }}>
-          Olá, {userName}!
+          Perfil {userName}
         </Text>
         <TouchableOpacity 
           onPress={() => setIsSavedListsModalVisible(true)}
@@ -164,7 +156,7 @@ export default function HomeScreen() {
           textShadowColor: 'rgba(255, 255, 255, 0.8)',
           textShadowOffset: { width: 0, height: 0 },
           textShadowRadius: 10 
-        }]}>Sua lista</Text>
+        }]}>Sua lista ({totalItems})</Text>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <TouchableOpacity 
             onPress={handleSortChange}
@@ -183,30 +175,39 @@ export default function HomeScreen() {
       </View>
 
       <FlatList
-        data={sortedItems}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => {
-          const showHeader = index === 0 || sortedItems[index - 1].grupo !== item.grupo;
-          return (
-            <View>
-              {showHeader && (
-                <View style={{
-                  backgroundColor: '#f1f8e9',
-                  paddingVertical: 6,
-                  paddingHorizontal: 12,
-                  marginTop: 15,
-                  marginBottom: 8,
-                  borderRadius: 6,
-                  borderLeftWidth: 5,
-                      borderLeftColor: '#1B5E20',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 8
-                }}>
-                      <MaterialIcons name={groupIcons[item.grupo]} size={18} color="#1B5E20" />
-                      <Text style={{ fontWeight: '900', color: '#1B5E20', textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>{item.grupo}</Text>
-                </View>
-              )}
+        data={displayList}
+        keyExtractor={(row) => row.id}
+        renderItem={({ item: row }) => {
+          if (row.type === 'header') {
+            return (
+              <TouchableOpacity onPress={() => toggleGroup(row.grupo)} style={{
+                backgroundColor: '#f1f8e9',
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                marginTop: 15,
+                marginBottom: 8,
+                borderRadius: 6,
+                borderLeftWidth: 5,
+                borderLeftColor: '#1B5E20',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <MaterialIcons name={groupIcons[row.grupo]} size={18} color="#1B5E20" />
+                <Text style={{ fontWeight: '900', color: '#1B5E20', textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>
+                  {row.grupo} ({row.count})
+                </Text>
+                <MaterialIcons
+                  name={row.isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                  size={24}
+                  color="#1B5E20"
+                  style={{ marginLeft: 'auto' }}
+                />
+              </TouchableOpacity>
+            );
+          } else {
+            const item = row.item;
+            return (
               <View style={styles.itemContainer}>
                 <View style={styles.itemContent}>
                   <View>
@@ -225,8 +226,8 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-            </View>
-          );
+            );
+          }
         }}
         ListEmptyComponent={<Text>Nenhum item salvo.</Text>}
         style={styles.list}

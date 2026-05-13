@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Modal, TextInput, StyleSheet, LayoutAnimation, Platform, UIManager, Alert, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
 import { useRouter, useLocalSearchParams, Link } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -103,6 +103,12 @@ export default function ConfirmacaoScreen() {
 
   const anyExpanded = Object.values(expandedGroups).some(v => v);
 
+  const totalActiveItems = useMemo(() => {
+    const activeInList = shoppingList.filter(i => i.status !== 'not_purchased').length;
+    const activeInTemp = tempItems.filter(i => i.status !== 'not_purchased').length;
+    return activeInList + activeInTemp;
+  }, [shoppingList, tempItems]);
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -112,12 +118,6 @@ export default function ConfirmacaoScreen() {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingTop: 10 }}>
         <Logo />
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity 
-            onPress={() => setIsTempAddModalVisible(true)} // Abre o modal de adição temporária
-            style={{ padding: 5, marginRight: 15 }}
-          >
-            <MaterialIcons name="add-shopping-cart" size={32} color="#4CAF50" />
-          </TouchableOpacity>
           {sortedNotPurchasedItems.length > 0 && (
             <TouchableOpacity 
               onPress={() => setShowNotPurchasedModal(true)}
@@ -134,6 +134,51 @@ export default function ConfirmacaoScreen() {
               </View>
             </TouchableOpacity>
           )}
+        </View>
+      </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, marginBottom: 5 }}>
+        <Text style={[styles.title, { 
+          marginBottom: 0,
+          fontSize: 24, 
+          fontWeight: '900', 
+          color: '#1B5E20', 
+          letterSpacing: -1,
+          textShadowColor: 'rgba(255, 255, 255, 0.8)',
+          textShadowOffset: { width: 0, height: 0 },
+          textShadowRadius: 10 
+        }]}>Itens para Compra ({totalActiveItems})</Text>
+        
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity 
+            onPress={() => setIsTempAddModalVisible(true)} 
+            style={{ 
+              padding: 8, 
+              backgroundColor: '#4CAF50', 
+              borderRadius: 12,
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.23,
+              shadowRadius: 2.62,
+            }}
+          >
+            <MaterialIcons 
+              name="add-shopping-cart" 
+              size={24} 
+              color="white" 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => toggleAllGroups(!anyExpanded)} 
+            style={{ padding: 6, backgroundColor: '#E8F5E9', borderRadius: 10 }}
+          >
+            <MaterialIcons 
+              name={anyExpanded ? "unfold-less" : "unfold-more"} 
+              size={24} 
+              color="#1B5E20" 
+            />
+          </TouchableOpacity>
         </View>
       </View>
 

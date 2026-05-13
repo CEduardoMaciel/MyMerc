@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Alert, TextInput } from 'react-native';
+import { Alert, TextInput, LayoutAnimation } from 'react-native';
 import { formatDecimal } from './app/utils';
 import { Item } from './constants'; // Assuming this path is correct
 import { sugestoes } from './sugestoes';
@@ -9,7 +9,12 @@ interface UseShoppingListProps {
   setItems: React.Dispatch<React.SetStateAction<Item[]>>;
   inputRef: React.RefObject<TextInput>;
   quantidadeInputRef: React.RefObject<TextInput>;
+  sortBy?: 'none' | 'alphabetical';
 }
+
+export type ShoppingListRow = 
+  | { type: 'header'; id: string; grupo: Item['grupo']; count: number; isExpanded: boolean }
+  | { type: 'item'; id: string; item: Item };
 
 interface UseShoppingListResult {
   input: string;
@@ -31,6 +36,11 @@ interface UseShoppingListResult {
   isEditModalVisible: boolean;
   setIsEditModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
   filteredSuggestions: { item: string; grupo: string }[];
+  displayList: ShoppingListRow[];
+  expandedGroups: Record<string, boolean>;
+  toggleGroup: (grupo: string) => void;
+  toggleAllGroups: (expand: boolean) => void;
+  totalItems: number;
   handleAddItem: () => void;
   finalizeAddItem: (grupo: Item['grupo']) => void;
   handleDeleteItem: (item: Item) => void;
@@ -48,10 +58,12 @@ export const useShoppingList = ({
   setItems,
   inputRef,
   quantidadeInputRef,
+  sortBy = 'none',
 }: UseShoppingListProps): UseShoppingListResult => {
   const [input, setInput] = useState('');
   const [quantidade, setQuantidade] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({}); // Começa vazio = tudo colapsado
 
   const [isGroupModalVisible, setIsGroupModalVisible] = useState(false);
   const [pendingItemName, setPendingItemName] = useState('');
@@ -83,7 +95,7 @@ export const useShoppingList = ({
     }
 
     const matchedGroup = Object.entries(sugestoes).find(([, itens]) =>
-      itens.some(s => s.toLowerCase() === lowerInput)
+      itens.some(s => normalizeString(s.toLowerCase()) === normalizeString(lowerInput))
     );
 
     if (matchedGroup) {
@@ -114,7 +126,6 @@ export const useShoppingList = ({
       quantidade: formatDecimal(pendingItemQuantity),
       grupo,
     };
-
     setItems((current) => [newItem, ...current]);
     setInput('');
     setQuantidade('');
@@ -199,6 +210,60 @@ export const useShoppingList = ({
     return [...startsWithMatches, ...includesMatches].slice(0, 6);
   }, [input]);
 
+  const toggleGroup = (grupo: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedGroups(prev => ({
+      ...prev,
+      [grupo]: !prev[grupo]
+    }));
+  };
+
+  const toggleAllGroups = (expand: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const groups = Array.from(new Set(items.map(i => i.grupo)));
+    const newState: Record<string, boolean> = {};
+    groups.forEach(g => { newState[g] = expand; });
+    setExpandedGroups(newState);
+  };
+
+  const displayList = useMemo(() => {
+    const sorted = [...items].sort((a, b) => {
+      const groupCompare = a.grupo.localeCompare(b.grupo);
+      if (groupCompare !== 0) return groupCompare;
+      if (sortBy === 'alphabetical') return a.name.localeCompare(b.name);
+      return 0;
+    });
+
+    const rows: ShoppingListRow[] = [];
+    let currentGroup: string | null = null;
+
+    sorted.forEach(item => {
+      if (item.grupo !== currentGroup) {
+        currentGroup = item.grupo;
+        const groupItems = sorted.filter(i => i.grupo === (currentGroup as string));
+        const isExpanded = !!expandedGroups[currentGroup as string];
+
+        rows.push({
+          type: 'header',
+          id: `header-${currentGroup}`,
+          grupo: currentGroup as Item['grupo'],
+          count: groupItems.length,
+          isExpanded: isExpanded
+        });
+      }
+
+      if (currentGroup && !!expandedGroups[currentGroup]) {
+        rows.push({
+          type: 'item',
+          id: item.id,
+          item
+        });
+      }
+    });
+
+    return rows;
+  }, [items, expandedGroups]);
+
   return {
     input,
     setInput,
@@ -219,6 +284,11 @@ export const useShoppingList = ({
     isEditModalVisible,
     setIsEditModalVisible,
     filteredSuggestions,
+    displayList,
+    expandedGroups,
+    toggleGroup,
+    toggleAllGroups,
+    totalItems: items.length,
     handleAddItem,
     finalizeAddItem,
     handleDeleteItem,
