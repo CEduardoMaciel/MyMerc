@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+﻿﻿import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -138,11 +138,11 @@ export default function HomeScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <TouchableOpacity 
             onPress={() => setIsSavedListsModalVisible(true)}
-            style={{ padding: 8, backgroundColor: theme.headerBg, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            style={{ padding: 8, backgroundColor: theme.headerBg, borderRadius: 12, position: 'relative' }}
           >
             <MaterialIcons name="list-alt" size={24} color={theme.logo} />
             {savedPurchases.length > 0 && (
-              <View style={{ backgroundColor: '#F44336', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 }}>
+              <View style={{ position: 'absolute', top: -5, right: -5, backgroundColor: '#F44336', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
                 <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{savedPurchases.length}</Text>
               </View>
             )}
@@ -356,9 +356,9 @@ export default function HomeScreen() {
               renderItem={({ item }) => {
                 const exp = getExpirationInfo(item);
                 return (
-                <View style={{ padding: 15, borderBottomWidth: 1, borderBottomColor: theme.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ padding: 15, borderBottomWidth: 1, borderBottomColor: theme.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                   <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.text }}>{item.date}</Text>
                       {exp && (
                         <View style={{ backgroundColor: exp.isExpired ? theme.expiredBg : theme.notExpiredBg, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
