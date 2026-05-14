@@ -38,6 +38,7 @@ interface UseShoppingListResult {
   filteredSuggestions: { item: string; grupo: string }[];
   displayList: ShoppingListRow[];
   expandedGroups: Record<string, boolean>;
+  setExpandedGroups: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   toggleGroup: (grupo: string) => void;
   toggleAllGroups: (expand: boolean) => void;
   totalItems: number;
@@ -286,6 +287,7 @@ export const useShoppingList = ({
     filteredSuggestions,
     displayList,
     expandedGroups,
+    setExpandedGroups,
     toggleGroup,
     toggleAllGroups,
     totalItems: items.length,

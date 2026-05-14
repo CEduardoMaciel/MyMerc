@@ -91,13 +91,20 @@ export const useSavedLists = ({
   };
 
   const handleLoadSavedList = (savedItems: Item[]) => {
+    const load = () => {
+      setItems(savedItems);
+      setIsPreviewModalVisible(false);
+      setIsSavedListsModalVisible(false);
+    };
+
+    if (items.length === 0) {
+      load();
+      return;
+    }
+
     Alert.alert('Carregar Lista', 'Isso substituirá sua lista atual. Continuar?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sim', onPress: () => {
-        setItems(savedItems);
-        setIsPreviewModalVisible(false);
-        setIsSavedListsModalVisible(false);
-      }}
+      { text: 'Sim', onPress: load }
     ]);
   };
 

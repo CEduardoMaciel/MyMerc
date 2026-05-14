@@ -8,7 +8,7 @@ import { Item } from './constants'; // Importa a interface Item centralizada
 interface PreviewSavedListModalProps {
   visible: boolean;
   previewData: { name: string; items: Item[] } | null;
-  onLoadList: (items: Item[]) => void;
+  onLoadList?: (items: Item[]) => void;
   onCancel: () => void;
 }
 
@@ -52,12 +52,14 @@ export const PreviewSavedListModal: React.FC<PreviewSavedListModalProps> = ({
             >
               <Text style={styles.addBtnText}>Voltar</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50', height: 45 }]}
-              onPress={() => onLoadList(previewData.items)}
-            >
-              <Text style={styles.addBtnText}>Usar Lista</Text>
-            </TouchableOpacity>
+            {onLoadList && (
+              <TouchableOpacity
+                style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50', height: 45 }]}
+                onPress={() => onLoadList(previewData.items)}
+              >
+                <Text style={styles.addBtnText}>Usar Lista</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>

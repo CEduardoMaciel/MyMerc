@@ -78,6 +78,7 @@ export default function ConfirmacaoScreen() {
     finalizeAddNewTempItem,
     handleDeleteTempItem,
     handleCancelShopping,
+    handleSaveQuickList,
     normalizeString,
   } = useConfirmationLogic({ sortBy, router });
 
@@ -413,6 +414,7 @@ export default function ConfirmacaoScreen() {
         visible={showSummaryModal}
         summary={summaryData}
         onClose={() => setShowSummaryModal(false)}
+        onSaveQuickList={handleSaveQuickList}
         onGoHome={async () => { 
           const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
           const user = creds ? JSON.parse(creds).u : 'admin';

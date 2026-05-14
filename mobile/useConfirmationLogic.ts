@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { LayoutAnimation, Alert } from 'react-native';
 import { getItemAsync, setItemAsync } from 'expo-secure-store';
-import { USER_CRED_KEY, getActiveListKey, getSavedKey, formatDecimal } from './app/utils'; // Import formatDecimal
+import { USER_CRED_KEY, getActiveListKey, getSavedKey, getQuickListsKey, formatDecimal } from './app/utils'; // Import formatDecimal
 import { Item as BaseItem } from './constants'; 
 import { sugestoes } from './sugestoes'; // Importar sugestoes
 
@@ -11,6 +11,14 @@ interface Item extends BaseItem {
   isConfirming?: boolean;
   isConfirmed?: boolean;
   isTemp?: boolean;
+}
+
+export interface SummaryData {
+  totalItems: number;
+  confirmedItems: number;
+  notPurchasedItemsCount: number;
+  remainingItems: number;
+  notPurchasedItems: Item[];
 }
 
 interface UseConfirmationLogicProps {
@@ -36,18 +44,8 @@ interface UseConfirmationLogicResult {
   setShowSummaryModal: React.Dispatch<React.SetStateAction<boolean>>;
   showNotPurchasedModal: boolean;
   setShowNotPurchasedModal: React.SetStateAction<boolean>;
-  summaryData: {
-    totalItems: number;
-    confirmedItems: number;
-    notPurchasedItemsCount: number;
-    remainingItems: number;
-  } | null;
-  setSummaryData: React.Dispatch<React.SetStateAction<{
-    totalItems: number;
-    confirmedItems: number;
-    notPurchasedItemsCount: number;
-    remainingItems: number;
-  } | null>>;
+  summaryData: SummaryData | null;
+  setSummaryData: React.Dispatch<React.SetStateAction<SummaryData | null>>;
   tempInput: string;
   setTempInput: React.Dispatch<React.SetStateAction<string>>;
   tempQuantidade: string;
@@ -83,6 +81,7 @@ interface UseConfirmationLogicResult {
   finalizeAddNewTempItem: (grupo: Item['grupo']) => void;
   handleDeleteTempItem: (id: string) => void;
   handleCancelShopping: () => void;
+  handleSaveQuickList: () => Promise<boolean>;
   normalizeString: (str: string) => string;
 }
 
@@ -96,12 +95,7 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
   const [modalVisible, setModalVisible] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showNotPurchasedModal, setShowNotPurchasedModal] = useState(false);
-  const [summaryData, setSummaryData] = useState<{
-    totalItems: number;
-    confirmedItems: number;
-    notPurchasedItemsCount: number;
-    remainingItems: number;
-  } | null>(null);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [isSaveModalVisible, setIsSaveModalVisible] = useState(false);
   const [saveName, setSaveName] = useState('');
 
@@ -131,6 +125,7 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
         }));
         setShoppingList(parsedItems);
         setOriginalList(parsedItems);
+        setExpandedGroups({}); // Reseta expansão ao carregar
       }
 
       setTimeout(() => {
@@ -333,15 +328,17 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
   const handleFinishShopping = () => {
     const allItems = [...shoppingList, ...tempItems]; // Considera todos os itens
     const confirmed = allItems.filter(item => item.status === 'confirmed').length;
-    const notPurchased = allItems.filter(item => item.status === 'not_purchased').length;
+    const notPurchasedItems = allItems.filter(item => item.status === 'not_purchased');
+    const notPurchasedCount = notPurchasedItems.length;
     const remaining = allItems.filter(item => item.status === 'pending').length;
 
     const onConfirmFinish = () => {
       setSummaryData({
         totalItems: allItems.length,
         confirmedItems: confirmed,
-        notPurchasedItemsCount: notPurchased,
+        notPurchasedItemsCount: notPurchasedCount,
         remainingItems: remaining,
+        notPurchasedItems: notPurchasedItems,
       });
 
       if (confirmed > 0) {
@@ -378,6 +375,40 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
         { text: 'Finalizar', onPress: onConfirmFinish },
       ]
     );
+  };
+
+  const handleSaveQuickList = async (): Promise<boolean> => {
+    if (!summaryData || summaryData.notPurchasedItems.length === 0) return false;
+
+    try {
+      const creds = await getItemAsync(USER_CRED_KEY);
+      const user = creds ? JSON.parse(creds).u : 'admin';
+      const key = getQuickListsKey(user);
+
+      const stored = await getItemAsync(key);
+      let quickLists = stored ? JSON.parse(stored) : [];
+
+      if (quickLists.length >= 3) {
+        Alert.alert('Limite atingido', 'Você já possui 3 listagens rápidas salvas. Exclua uma na tela inicial para poder gerar uma nova.');
+        return false;
+      }
+
+      const newList = {
+        id: Date.now().toString(),
+        date: new Date().toLocaleDateString('pt-BR'),
+        items: summaryData.notPurchasedItems.map(i => ({ ...i, status: 'pending', isConfirmed: false, isTemp: false })),
+      };
+
+      quickLists = [newList, ...quickLists];
+
+      await setItemAsync(key, JSON.stringify(quickLists));
+      Alert.alert('Sucesso', 'Listagem rápida de itens não comprados gerada!');
+      return true;
+    } catch (error) {
+      console.error('Erro ao salvar listagem rápida:', error);
+      Alert.alert('Erro', 'Não foi possível gerar a listagem rápida');
+      return false;
+    }
   };
 
   const handleAddNewTempItem = () => {
@@ -525,6 +556,7 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
     finalizeAddNewTempItem,
     handleDeleteTempItem,
     handleCancelShopping,
+    handleSaveQuickList,
     normalizeString,
   };
 };

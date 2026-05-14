@@ -1,5 +1,5 @@
-﻿import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+﻿import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Logo } from '@/components/logo';
@@ -18,14 +18,19 @@ import { styles } from './style';
 
 export default function HomeScreen() {
   const [sortBy, setSortBy] = useState<'none' | 'alphabetical'>('none');
+  const [isQuickListsModalVisible, setIsQuickListsModalVisible] = useState(false);
   const quantidadeInputRef = useRef<TextInput>(null);
+  const [previewQuickList, setPreviewQuickList] = useState<{ id: string, date: string, items: any[] } | null>(null);
+  const [showQuickListPromptOnLogin, setShowQuickListPromptOnLogin] = useState(false); // Novo estado
   const router = useRouter();
+  const initialCheckDone = useRef(false);
   const inputRef = useRef<TextInput>(null);
 
   const {
     isLoggedIn, isAuthLoading, userName, isUserContextLoaded,
     handleLoginSuccess, handleLogout, items, setItems,
-    savedPurchases, setSavedPurchases
+    savedPurchases, setSavedPurchases,
+    quickLists, handleDeleteQuickList
   } = useAuthAndDataLoading();
 
   const {
@@ -36,7 +41,7 @@ export default function HomeScreen() {
     isEditModalVisible, setIsEditModalVisible,
     filteredSuggestions, handleAddItem, finalizeAddItem, handleDeleteItem,
     openEditModal, handleSaveEdit, handleDeleteAll,
-    displayList, toggleGroup, totalItems
+    displayList, toggleGroup, totalItems, setExpandedGroups
   } = useShoppingList({ items, setItems, inputRef, quantidadeInputRef, sortBy });
 
   const {
@@ -50,6 +55,34 @@ export default function HomeScreen() {
     setSavedPurchases, 
     userName 
   });
+
+  // Handler modificado para ser chamado pelo SplashScreen
+  const handleLoginSuccessAndPromptCheck = async () => {
+    await handleLoginSuccess();
+    setShowQuickListPromptOnLogin(true); // Ativa o flag para exibir o prompt após o login
+  };
+
+  useEffect(() => {
+    // Este useEffect agora depende de 'showQuickListPromptOnLogin'
+    if (isUserContextLoaded && showQuickListPromptOnLogin) {
+      setShowQuickListPromptOnLogin(false); // Reseta o flag imediatamente para evitar repetição
+
+      if (quickLists.length > 0) {
+        const title = quickLists.length === 1 
+          ? "Existe listagem de não comprados" 
+          : `Existem ${quickLists.length} listagens de não comprados`;
+        
+        Alert.alert(
+          title,
+          "Deseja exibi-las?",
+          [
+            { text: "Agora não", style: "cancel" },
+            { text: "Sim", onPress: () => setIsQuickListsModalVisible(true) }
+          ]
+        );
+      }
+    }
+  }, [isUserContextLoaded, showQuickListPromptOnLogin, quickLists]);
 
   const handleConfirm = () => {
     router.push({
@@ -72,7 +105,7 @@ export default function HomeScreen() {
   }
 
   if (!isLoggedIn) {
-    return <SplashScreen onFinish={handleLoginSuccess} />;
+    return <SplashScreen onFinish={handleLoginSuccessAndPromptCheck} />; // Usa o novo handler
   }
 
   return (
@@ -85,17 +118,30 @@ export default function HomeScreen() {
         <Text style={{ fontSize: 20, fontWeight: '900', color: '#1B5E20' }}>
           Perfil {userName}
         </Text>
-        <TouchableOpacity 
-          onPress={() => setIsSavedListsModalVisible(true)}
-          style={{ padding: 8, backgroundColor: '#E8F5E9', borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4 }}
-        >
-          <MaterialIcons name="list-alt" size={24} color="#2E7D32" />
-          {savedPurchases.length > 0 && (
-            <View style={{ backgroundColor: '#F44336', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 }}>
-              <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{savedPurchases.length}</Text>
-            </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity 
+            onPress={() => setIsSavedListsModalVisible(true)}
+            style={{ padding: 8, backgroundColor: '#E8F5E9', borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+          >
+            <MaterialIcons name="list-alt" size={24} color="#2E7D32" />
+            {savedPurchases.length > 0 && (
+              <View style={{ backgroundColor: '#F44336', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 }}>
+                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{savedPurchases.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          {quickLists.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => setIsQuickListsModalVisible(true)}
+              style={{ padding: 8, backgroundColor: '#FFF3E0', borderRadius: 12 }}
+            >
+              <MaterialIcons name="flash-on" size={24} color="#EF6C00" />
+              <View style={{ position: 'absolute', top: -5, right: -5, backgroundColor: '#F44336', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{quickLists.length}</Text>
+              </View>
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+        </View>
       </View>
 
       <View style={{ marginBottom: 20 }}>
@@ -294,6 +340,59 @@ export default function HomeScreen() {
           setPendingItemName('');
           setPendingItemQuantity('');
         }}
+      />
+
+      <Modal visible={isQuickListsModalVisible} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 20, width: '90%', maxHeight: '80%' }}>
+            <Text style={[styles.title, { color: '#EF6C00', fontSize: 22 }]}>Listagens Rápidas</Text>
+            <Text style={{ marginBottom: 15, color: '#666' }}>Itens não comprados em sessões anteriores.</Text>
+            
+            <FlatList
+              data={quickLists}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <View style={{ padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{item.date}</Text>
+                    <Text style={{ color: '#666', fontSize: 12 }}>{item.items.length} produtos pendentes</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity onPress={() => setPreviewQuickList(item)}>
+                      <MaterialIcons name="visibility" size={28} color="#2196F3" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => {
+                      setItems(prev => [...prev, ...item.items]);
+                      setExpandedGroups({}); // Garante que tudo comece fechado
+                      handleDeleteQuickList(item.id);
+                      setIsQuickListsModalVisible(false);
+                      Alert.alert('Sucesso', 'Itens adicionados à lista atual.');
+                    }}>
+                      <MaterialIcons name="add-task" size={28} color="#4CAF50" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteQuickList(item.id)}>
+                      <MaterialIcons name="delete-outline" size={28} color="#F44336" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              ListEmptyComponent={<Text style={{ textAlign: 'center', padding: 20 }}>Nenhuma listagem rápida disponível.</Text>}
+            />
+            
+            <TouchableOpacity 
+              style={[styles.addBtn, { marginTop: 15, backgroundColor: '#ccc' }]} 
+              onPress={() => setIsQuickListsModalVisible(false)}
+            >
+              <Text style={styles.addBtnText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <PreviewSavedListModal
+        visible={!!previewQuickList}
+        previewData={previewQuickList ? { name: `Itens de ${previewQuickList.date}`, items: previewQuickList.items } : null}
+        onCancel={() => setPreviewQuickList(null)}
       />
     </View>
   );

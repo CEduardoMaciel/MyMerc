@@ -12,6 +12,11 @@ export const getActiveListKey = (user: string) => {
   return `activeList${sanitized}`;
 };
 
+export const getQuickListsKey = (user: string) => {
+  const sanitized = (user || 'default').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `quickLists${sanitized}`;
+};
+
 export const formatDecimal = (val: string) => {
   if (!val) return '0.00';
   const num = parseFloat(val.replace(',', '.'));

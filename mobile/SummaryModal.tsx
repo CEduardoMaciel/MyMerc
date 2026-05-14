@@ -1,17 +1,15 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { styles } from './app/(tabs)/style';
+import { SummaryData } from './useConfirmationLogic';
 
 interface SummaryModalProps {
   visible: boolean;
-  summary: {
-    totalItems: number;
-    confirmedItems: number;
-    notPurchasedItemsCount: number;
-    remainingItems: number;
-  } | null;
+  summary: SummaryData | null;
   onClose: () => void;
   onGoHome: () => void;
+  onSaveQuickList: () => Promise<boolean>;
 }
 
 export const SummaryModal: React.FC<SummaryModalProps> = ({
@@ -19,6 +17,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
   summary,
   onClose,
   onGoHome,
+  onSaveQuickList,
 }) => {
   if (!summary) return null;
 
@@ -37,12 +36,33 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
           }]}>Resumo das Compras</Text>
           <Text style={{ fontSize: 16, marginBottom: 5 }}>Total de itens na lista: {summary.totalItems}</Text>
           <Text style={{ fontSize: 16, marginBottom: 5 }}>Itens comprados: {summary.confirmedItems}</Text>
-          <Text style={{ fontSize: 16, marginBottom: 5 }}>Itens não comprados: {summary.notPurchasedItemsCount}</Text>
+          
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+            <Text style={{ fontSize: 16 }}>Itens não comprados: {summary.notPurchasedItemsCount}</Text>
+            {summary.notPurchasedItemsCount > 0 && (
+              <TouchableOpacity 
+                onPress={async () => {
+                  if (typeof onSaveQuickList === 'function') {
+                    const success = await onSaveQuickList();
+                    if (success) {
+                      onGoHome();
+                    }
+                  }
+                }}
+                style={{ padding: 6, backgroundColor: '#FFF3E0', borderRadius: 10, marginLeft: 10 }}
+              >
+                <MaterialIcons name="flash-on" size={22} color="#EF6C00" />
+              </TouchableOpacity>
+            )}
+          </View>
+
           <Text style={{ fontSize: 16, marginBottom: 15 }}>Itens restantes: {summary.remainingItems}</Text>
 
-          <TouchableOpacity style={styles.addBtn} onPress={onGoHome}>
-            <Text style={styles.addBtnText}>Reiniciar</Text>
-          </TouchableOpacity>
+          <View style={{ width: '100%', gap: 10 }}>
+            <TouchableOpacity style={[styles.addBtn, { backgroundColor: '#4CAF50' }]} onPress={onGoHome}>
+              <Text style={styles.addBtnText}>Reiniciar e Sair</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>

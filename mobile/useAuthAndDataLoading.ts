@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getItemAsync, setItemAsync, deleteItemAsync } from 'expo-secure-store';
-import { AUTH_KEY, USER_CRED_KEY, getActiveListKey, getSavedKey } from './app/utils';
+import { AUTH_KEY, USER_CRED_KEY, getActiveListKey, getSavedKey, getQuickListsKey } from './app/utils';
 import { Item } from './constants'; // Assuming Item interface is shared
 
 interface AuthAndDataLoadingResult {
@@ -14,6 +14,9 @@ interface AuthAndDataLoadingResult {
   setItems: React.Dispatch<React.SetStateAction<Item[]>>;
   savedPurchases: { name: string; items: Item[]; }[];
   setSavedPurchases: React.Dispatch<React.SetStateAction<{ name: string; items: Item[]; }[]>>;
+  quickLists: { id: string; date: string; items: Item[]; }[];
+  setQuickLists: React.Dispatch<React.SetStateAction<{ id: string; date: string; items: Item[]; }[]>>;
+  handleDeleteQuickList: (id: string) => Promise<void>;
 }
 
 export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
@@ -25,6 +28,7 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
   // These setters will be passed to the main component to update its state
   const [items, setItems] = useState<Item[]>([]);
   const [savedPurchases, setSavedPurchases] = useState<{ name: string; items: Item[]; }[]>([]);
+  const [quickLists, setQuickLists] = useState<{ id: string; date: string; items: Item[]; }[]>([]);
 
   useEffect(() => {
     const loadAuth = async () => {
@@ -46,6 +50,10 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
               const savedKey = getSavedKey(u);
               const storedSaved = await getItemAsync(savedKey);
               if (storedSaved) setSavedPurchases(JSON.parse(storedSaved));
+
+              const qlKey = getQuickListsKey(u);
+              const storedQL = await getItemAsync(qlKey);
+              if (storedQL) setQuickLists(JSON.parse(storedQL));
 
               setIsLoggedIn(true);
               setIsUserContextLoaded(true);
@@ -116,6 +124,12 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
           setSavedPurchases(JSON.parse(storedSaved));
         }
 
+        const qlKey = getQuickListsKey(u);
+        const storedQL = await getItemAsync(qlKey);
+        if (storedQL) {
+          setQuickLists(JSON.parse(storedQL));
+        }
+
         setIsLoggedIn(true);
         setIsUserContextLoaded(true);
       } else {
@@ -134,10 +148,23 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
       await deleteItemAsync(AUTH_KEY);
       setItems([]);
       setSavedPurchases([]);
+      setQuickLists([]);
       setUserName('');
       setIsLoggedIn(false);
     } catch (error) {
       console.error('Erro ao deslogar:', error);
+    }
+  };
+
+  const handleDeleteQuickList = async (id: string) => {
+    if (!userName) return;
+    try {
+      const updated = quickLists.filter(ql => ql.id !== id);
+      setQuickLists(updated);
+      const qlKey = getQuickListsKey(userName.toLowerCase());
+      await setItemAsync(qlKey, JSON.stringify(updated));
+    } catch (error) {
+      console.error('Erro ao excluir listagem rápida:', error);
     }
   };
 
@@ -152,5 +179,8 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
     setItems,
     savedPurchases,
     setSavedPurchases,
+    quickLists,
+    setQuickLists,
+    handleDeleteQuickList,
   };
 };
