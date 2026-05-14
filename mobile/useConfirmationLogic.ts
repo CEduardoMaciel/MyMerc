@@ -20,6 +20,9 @@ export interface SummaryData {
   notPurchasedItemsCount: number;
   remainingItems: number;
   notPurchasedItems: Item[];
+  allItemsList: Item[];
+  confirmedItemsList: Item[];
+  remainingItemsList: Item[];
 }
 
 interface UseConfirmationLogicProps {
@@ -342,6 +345,9 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
         notPurchasedItemsCount: notPurchasedCount,
         remainingItems: remaining,
         notPurchasedItems: notPurchasedItems,
+        allItemsList: allItems,
+        confirmedItemsList: allItems.filter(item => item.status === 'confirmed'),
+        remainingItemsList: allItems.filter(item => item.status === 'pending'),
       });
 
       if (confirmed > 0) {
@@ -383,37 +389,50 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
   const handleSaveQuickList = async (): Promise<boolean> => {
     if (!summaryData || summaryData.notPurchasedItems.length === 0) return false;
 
-    try {
-      const creds = await getItemAsync(USER_CRED_KEY);
-      const user = creds ? JSON.parse(creds).u : 'admin';
-      const key = getQuickListsKey(user);
+    return new Promise((resolve) => {
+      Alert.alert(
+        'Gerar Listagem Rápida',
+        'Deseja criar uma listagem rápida com os itens que não foram encontrados para facilitar sua próxima compra?',
+        [
+          { text: 'Não', onPress: () => resolve(false), style: 'cancel' },
+          {
+            text: 'Sim, Gerar',
+            onPress: async () => {
+              try {
+                const creds = await getItemAsync(USER_CRED_KEY);
+                const user = creds ? JSON.parse(creds).u : 'admin';
+                const key = getQuickListsKey(user);
 
-      const stored = await getItemAsync(key);
-      let quickLists = stored ? JSON.parse(stored) : [];
+                const stored = await getItemAsync(key);
+                let quickLists = stored ? JSON.parse(stored) : [];
 
-      if (quickLists.length >= 3) {
-        Alert.alert('Limite atingido', 'Você já possui 3 listagens rápidas salvas. Exclua uma na tela inicial para poder gerar uma nova.');
-        return false;
-      }
+                if (quickLists.length >= 3) {
+                  Alert.alert('Limite atingido', 'Você já possui 3 listagens rápidas salvas. Exclua uma na tela inicial para poder gerar uma nova.');
+                  return resolve(false);
+                }
 
-      const newList = {
-        id: Date.now().toString(),
-        date: new Date().toLocaleDateString('pt-BR'),
-        timestamp: Date.now(),
-        items: summaryData.notPurchasedItems.map(i => ({ ...i, status: 'pending', isConfirmed: false, isTemp: false })),
-      };
+                const newList = {
+                  id: Date.now().toString(),
+                  date: new Date().toLocaleDateString('pt-BR'),
+                  timestamp: Date.now(),
+                  items: summaryData.notPurchasedItems.map(i => ({ ...i, status: 'pending', isConfirmed: false, isTemp: false })),
+                };
 
-      quickLists = [newList, ...quickLists];
+                quickLists = [newList, ...quickLists];
 
-      await setItemAsync(key, JSON.stringify(quickLists));
-      setQuickLists(quickLists); // Atualiza o estado global imediatamente
-      Alert.alert('Sucesso', 'Listagem rápida de itens não comprados gerada!');
-      return true;
-    } catch (error) {
-      console.error('Erro ao salvar listagem rápida:', error);
-      Alert.alert('Erro', 'Não foi possível gerar a listagem rápida');
-      return false;
-    }
+                await setItemAsync(key, JSON.stringify(quickLists));
+                setQuickLists(quickLists);
+                Alert.alert('Sucesso', 'Listagem rápida gerada!');
+                resolve(true);
+              } catch (error) {
+                Alert.alert('Erro', 'Não foi possível gerar a listagem rápida');
+                resolve(false);
+              }
+            }
+          }
+        ]
+      );
+    });
   };
 
   const handleAddNewTempItem = () => {
