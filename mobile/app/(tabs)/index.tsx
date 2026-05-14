@@ -307,7 +307,7 @@ export default function HomeScreen() {
       />
 
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-        <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: '#9e9e9e' }]} onPress={handleLogout}>
+        <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: '#F44336' }]} onPress={handleLogout}>
           <Text style={styles.addBtnText}>Sair</Text>
         </TouchableOpacity>
         <TouchableOpacity 
@@ -437,10 +437,10 @@ export default function HomeScreen() {
             />
             
             <TouchableOpacity 
-              style={[styles.addBtn, { marginTop: 15, backgroundColor: '#ccc' }]} 
+              style={[styles.addBtn, { marginTop: 15, backgroundColor: '#F44336' }]} 
               onPress={() => setIsQuickListsModalVisible(false)}
             >
-              <Text style={styles.addBtnText}>Fechar</Text>
+              <Text style={styles.addBtnText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -27,7 +27,7 @@ export const GroupSelectionModal: React.FC<GroupSelectionModalProps> = ({
     subtitle: isDark ? '#858585' : '#666',
     cardBg: isDark ? '#2D2D2D' : '#F1F8E9',
     cardBorder: isDark ? '#333' : '#C8E6C9',
-    buttonCancel: isDark ? '#333' : '#ccc',
+    buttonCancel: '#F44336',
   };
 
   return (

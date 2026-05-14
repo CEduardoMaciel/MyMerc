@@ -30,7 +30,7 @@ export const SaveListModal: React.FC<SaveListModalProps> = ({
     inputBg: isDark ? '#3C3C3C' : '#fff',
     inputBorder: isDark ? '#333' : '#ddd',
     placeholder: isDark ? '#888' : '#999',
-    buttonCancel: isDark ? '#333' : '#ccc',
+    buttonCancel: '#F44336',
   };
 
   return (

@@ -28,7 +28,7 @@ export const PreviewSavedListModal: React.FC<PreviewSavedListModalProps> = ({
     text: isDark ? '#D4D4D4' : '#333',
     title: isDark ? '#4CAF50' : '#1B5E20',
     border: isDark ? '#333' : '#eee',
-    buttonCancel: isDark ? '#333' : '#ccc',
+    buttonCancel: '#2196F3',
     buttonAccent: isDark ? '#4CAF50' : '#4CAF50',
   };
 

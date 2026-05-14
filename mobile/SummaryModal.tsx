@@ -34,8 +34,8 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
     card: isDark ? '#2D2D2D' : '#FFF3E0',
     cardBorder: isDark ? '#333' : '#FFE0B2',
     secondaryText: isDark ? '#B0BEC5' : '#666',
-    accent: '#4CAF50',
-    buttonCancel: isDark ? '#333' : '#ccc',
+    buttonBlue: '#2196F3',
+    buttonRed: '#F44336',
   };
 
   return (
@@ -74,7 +74,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
                 }
               />
               <TouchableOpacity 
-                style={[localStyles.actionButton, { backgroundColor: theme.buttonCancel }]} 
+                style={[localStyles.actionButton, { backgroundColor: theme.buttonBlue }]} 
                 onPress={() => setViewingList(null)}
               >
                 <MaterialIcons name="arrow-back" size={24} color="white" />
@@ -145,7 +145,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
 
           <View style={{ width: '100%', gap: 12, marginTop: 10 }}>
             <TouchableOpacity 
-              style={[localStyles.actionButton, { backgroundColor: theme.accent }]} 
+              style={[localStyles.actionButton, { backgroundColor: theme.buttonBlue }]} 
               onPress={onGoHome}
             >
               <MaterialIcons name="refresh" size={24} color="white" />

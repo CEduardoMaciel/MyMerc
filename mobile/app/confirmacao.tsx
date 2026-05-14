@@ -279,7 +279,7 @@ export default function ConfirmacaoScreen() {
 
       {/* Botões de Ação */}
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 20, paddingBottom: 20 }}>
-        <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: '#FF5252' }]} onPress={handleCancelShopping}>
+        <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: '#F44336' }]} onPress={handleCancelShopping}>
           <Text style={styles.addBtnText}>Cancelar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50' }]} onPress={handleFinishShopping}>
@@ -336,7 +336,7 @@ export default function ConfirmacaoScreen() {
             />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 15, width: '100%' }}>
               <TouchableOpacity 
-                style={[styles.addBtn, { flex: 1, backgroundColor: '#ccc' }]} 
+                style={[styles.addBtn, { flex: 1, backgroundColor: '#F44336' }]} 
                 onPress={() => {
                   setIsTempAddModalVisible(false);
                   setTempInput('');
@@ -375,7 +375,7 @@ export default function ConfirmacaoScreen() {
             />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
               <TouchableOpacity 
-                style={[styles.addBtn, { flex: 1, backgroundColor: '#ccc' }]} 
+                style={[styles.addBtn, { flex: 1, backgroundColor: '#F44336' }]} 
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={styles.addBtnText}>Cancelar</Text>
@@ -408,10 +408,10 @@ export default function ConfirmacaoScreen() {
             />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
               <TouchableOpacity 
-                style={[styles.addBtn, { flex: 1, backgroundColor: '#ccc' }]} 
+                style={[styles.addBtn, { flex: 1, backgroundColor: '#2196F3' }]} 
                 onPress={() => { setIsSaveModalVisible(false); setShowSummaryModal(true); }}
               >
-                <Text style={styles.addBtnText}>Finalizar</Text>
+                <Text style={styles.addBtnText}>Voltar</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50' }]} 

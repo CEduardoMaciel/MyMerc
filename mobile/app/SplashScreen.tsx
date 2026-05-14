@@ -375,7 +375,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
                 <Text style={localStyles.enterBtnText}>Criar Perfil</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setIsCreatingProfile(false)} style={{ marginTop: 15, alignItems: 'center' }}>
-                <Text style={{ color: theme.secondaryText }}>Voltar</Text>
+                <Text style={{ color: '#2196F3', fontWeight: 'bold' }}>Voltar</Text>
               </TouchableOpacity>
             </View>
           ) : (

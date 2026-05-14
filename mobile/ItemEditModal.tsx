@@ -29,7 +29,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     title: isDark ? '#4CAF50' : '#1B5E20',
     inputBg: isDark ? '#3C3C3C' : '#fff',
     inputBorder: isDark ? '#333' : '#ddd',
-    cancelBtn: isDark ? '#333' : '#ccc',
+    cancelBtn: '#F44336',
   };
 
   return (
