@@ -362,11 +362,31 @@ export default function HomeScreen() {
                       <MaterialIcons name="visibility" size={28} color="#2196F3" />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => {
-                      setItems(prev => [...prev, ...item.items]);
-                      setExpandedGroups({}); // Garante que tudo comece fechado
-                      handleDeleteQuickList(item.id);
-                      setIsQuickListsModalVisible(false);
-                      Alert.alert('Sucesso', 'Itens adicionados à lista atual.');
+                      const loadQuickList = () => {
+                        // Garante a unicidade dos itens (por nome, ignorando case)
+                        const uniqueItems = item.items.filter((val, index, self) =>
+                          index === self.findIndex((t) => t.name.toLowerCase() === val.name.toLowerCase())
+                        );
+
+                        setItems(uniqueItems);
+                        setExpandedGroups({}); // Reseta expansão
+                        handleDeleteQuickList(item.id);
+                        setIsQuickListsModalVisible(false);
+                        Alert.alert('Sucesso', 'A lista foi substituída pelos itens da listagem rápida.');
+                      };
+
+                      if (items.length > 0) {
+                        Alert.alert(
+                          'Substituir Lista?',
+                          'Sua lista atual já possui itens. Deseja apagar tudo e carregar os itens desta listagem rápida?',
+                          [
+                            { text: 'Cancelar', style: 'cancel' },
+                            { text: 'Substituir Tudo', style: 'destructive', onPress: loadQuickList }
+                          ]
+                        );
+                      } else {
+                        loadQuickList();
+                      }
                     }}>
                       <MaterialIcons name="add-task" size={28} color="#4CAF50" />
                     </TouchableOpacity>

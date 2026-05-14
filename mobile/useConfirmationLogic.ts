@@ -420,60 +420,93 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
     const inputValue = tempInput.trim();
     const lowerInput = inputValue.toLowerCase();
 
-    // Verificar se o item já existe na lista temporária (para evitar duplicatas)
-    const existingItem = tempItems.find(i => i.name.toLowerCase() === lowerInput);
+    // Verificar se o item já existe em qualquer uma das listagens para evitar duplicatas
+    const existingItem = [...shoppingList, ...tempItems].find(i => i.name.toLowerCase() === lowerInput);
+
+    const startProcess = (isUpdate: boolean) => {
+      const matchedGroup = Object.entries(sugestoes).find(([, itens]) =>
+        itens.some(s => normalizeString(s.toLowerCase()) === normalizeString(lowerInput))
+      );
+
+      if (matchedGroup) {
+        const grupo = matchedGroup[0] as Item['grupo'];
+        if (isUpdate) {
+          const update = (list: Item[]) => list.map(i => 
+            i.name.toLowerCase() === lowerInput 
+            ? { ...i, quantidade: formatDecimal(tempQuantidade), grupo, status: 'pending', isConfirmed: false, isConfirming: false } 
+            : i
+          );
+          setShoppingList(update);
+          setTempItems(update);
+          Alert.alert('Sucesso', `"${existingItem?.name}" foi atualizado.`);
+        } else {
+          const newItem: Item = {
+            id: `${Date.now()}-${Math.random()}`,
+            name: inputValue,
+            quantidade: formatDecimal(tempQuantidade),
+            grupo,
+            status: 'pending',
+            isTemp: true,
+          };
+          setTempItems((current) => [newItem, ...current]);
+          Alert.alert('Sucesso', `"${inputValue}" adicionado temporariamente.`);
+        }
+        setTempInput('');
+        setTempQuantidade('');
+        setIsTempAddModalVisible(false);
+      } else {
+        setPendingTempItemName(inputValue);
+        setPendingTempItemQuantity(tempQuantidade);
+        setTempGroupModalVisible(true);
+      }
+    };
+
     if (existingItem) {
       Alert.alert(
-        'Item já adicionado',
-        `O produto "${existingItem.name}" já está na sua lista temporária.`,
-        [{ text: 'OK', style: 'cancel' }]
+        'Item já existe',
+        `O produto "${existingItem.name}" já está na sua listagem. Deseja substituir as informações atuais pelas novas?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Substituir', style: 'destructive', onPress: () => startProcess(true) }
+        ]
       );
-      return;
-    }
-
-    const matchedGroup = Object.entries(sugestoes).find(([, itens]) =>
-      itens.some(s => normalizeString(s.toLowerCase()) === normalizeString(lowerInput))
-    );
-
-    if (matchedGroup) {
-      const grupo = matchedGroup[0] as Item['grupo'];
-      const newItem: Item = {
-        id: `${Date.now()}-${Math.random()}`,
-        name: inputValue,
-        quantidade: formatDecimal(tempQuantidade),
-        grupo,
-        status: 'pending',
-        isTemp: true, // Marca como item temporário
-      };
-      setTempItems((current) => [newItem, ...current]);
-      setTempInput('');
-      setTempQuantidade('');
-      setIsTempAddModalVisible(false); // Fecha o modal após adicionar
-      Alert.alert('Sucesso', `"${inputValue}" adicionado temporariamente.`);
     } else {
-      setPendingTempItemName(inputValue);
-      setPendingTempItemQuantity(tempQuantidade);
-      setTempGroupModalVisible(true);
+      startProcess(false);
     }
   };
 
   const finalizeAddNewTempItem = (grupo: Item['grupo']) => {
-    const newItem: Item = {
-      id: `${Date.now()}-${Math.random()}`,
-      name: pendingTempItemName,
-      quantidade: formatDecimal(pendingTempItemQuantity),
-      grupo,
-      status: 'pending',
-      isTemp: true, // Marca como item temporário
-    };
-    setTempItems((current) => [newItem, ...current]);
+    const lowerName = pendingTempItemName.toLowerCase();
+    const existingItem = [...shoppingList, ...tempItems].find(i => i.name.toLowerCase() === lowerName);
+
+    if (existingItem) {
+      const update = (list: Item[]) => list.map(i => 
+        i.name.toLowerCase() === lowerName 
+        ? { ...i, quantidade: formatDecimal(pendingTempItemQuantity), grupo, status: 'pending', isConfirmed: false, isConfirming: false } 
+        : i
+      );
+      setShoppingList(update);
+      setTempItems(update);
+      Alert.alert('Sucesso', `"${existingItem.name}" foi atualizado.`);
+    } else {
+      const newItem: Item = {
+        id: `${Date.now()}-${Math.random()}`,
+        name: pendingTempItemName,
+        quantidade: formatDecimal(pendingTempItemQuantity),
+        grupo,
+        status: 'pending',
+        isTemp: true,
+      };
+      setTempItems((current) => [newItem, ...current]);
+      Alert.alert('Sucesso', `"${pendingTempItemName}" adicionado temporariamente.`);
+    }
+
     setTempInput('');
     setTempQuantidade('');
     setPendingTempItemName('');
     setPendingTempItemQuantity('');
     setTempGroupModalVisible(false);
     setIsTempAddModalVisible(false); // Fecha o modal após adicionar
-    Alert.alert('Sucesso', `"${newItem.name}" adicionado temporariamente.`);
   };
 
   const handleDeleteTempItem = (id: string) => {
