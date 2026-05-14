@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Alert, TextInput, LayoutAnimation } from 'react-native';
-import { formatDecimal } from './app/utils';
+import { formatDecimal, normalizeString } from './app/utils';
 import { Item } from './constants'; // Assuming this path is correct
 import { sugestoes } from './sugestoes';
 
@@ -49,10 +49,6 @@ interface UseShoppingListResult {
   handleSaveEdit: () => void;
   handleDeleteAll: () => void;
 }
-
-const normalizeString = (str: string) => {
-  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-};
 
 export const useShoppingList = ({
   items,

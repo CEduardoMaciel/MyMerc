@@ -1,10 +1,10 @@
 import React from 'react';
 import { Modal, View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons'; // Assuming this path is correct
-import { styles } from './app/(tabs)/style';
+import { createStyles } from './app/(tabs)/style';
 import { Item } from './constants'; // Importa a interface Item centralizada
+import { useAppTheme } from './ThemeContext';
 
-import { useAuthAndDataLoading } from './useAuthAndDataLoading';
 interface SavedListsModalProps {
   visible: boolean;
   savedPurchases: { name: string; items: Item[] }[];
@@ -20,16 +20,8 @@ export const SavedListsModal: React.FC<SavedListsModalProps> = ({
   onDeleteList,
   onClose,
 }) => {
-  const { settings } = useAuthAndDataLoading();
-  const isDark = settings.theme === 'dark';
-  const theme = {
-    modalBg: isDark ? '#1E1E1E' : '#fff',
-    text: isDark ? '#D4D4D4' : '#333',
-    title: isDark ? '#4CAF50' : '#1B5E20',
-    subtitle: isDark ? '#858585' : '#666',
-    cardBg: isDark ? '#2D2D2D' : '#F1F8E9',
-    cardBorder: isDark ? '#333' : '#C8E6C9',
-  };
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -50,7 +42,7 @@ export const SavedListsModal: React.FC<SavedListsModalProps> = ({
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 }}> 
                 <TouchableOpacity
                   onPress={() => onOpenPreview(item)}
-                  style={{ flex: 1, backgroundColor: theme.cardBg, padding: 15, borderRadius: 10, borderWidth: 1, borderColor: theme.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                  style={{ flex: 1, backgroundColor: theme.headerBg, padding: 15, borderRadius: 10, borderWidth: 1, borderColor: theme.headerBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   <Text style={{ fontSize: 16, color: theme.text, fontWeight: 'bold' }}>{item.name}</Text>
                   <Text style={{ fontSize: 12, color: theme.subtitle }}>{item.items.length} itens</Text>
@@ -59,7 +51,7 @@ export const SavedListsModal: React.FC<SavedListsModalProps> = ({
                   onPress={() => onDeleteList(item.name)}
                   style={{ padding: 10 }}
                 >
-                  <MaterialIcons name="delete-outline" size={24} color="#F44336" />
+                  <MaterialIcons name="delete-outline" size={24} color={theme.cancelBtn} />
                 </TouchableOpacity>
               </View>
             )}

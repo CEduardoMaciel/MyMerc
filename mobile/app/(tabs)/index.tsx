@@ -14,7 +14,8 @@ import { SaveListModal } from '../../SaveListModal';
 import { SavedListsModal } from '../../SavedListsModal';
 import { PreviewSavedListModal } from '../../PreviewSavedListModal';
 import { GroupSelectionModal } from '../../GroupSelectionModal';
-import { styles } from './style';
+import { createStyles } from './style';
+import { useAppTheme } from '../../ThemeContext';
 
 export default function HomeScreen() {
   const [sortBy, setSortBy] = useState<'none' | 'alphabetical'>('none');
@@ -56,21 +57,9 @@ export default function HomeScreen() {
     userName 
   });
 
-  // Temas e Cores Dinâmicos baseados no perfil
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const isDark = settings.theme === 'dark';
-  const theme = {
-    background: isDark ? '#1E1E1E' : '#fff',
-    surface: isDark ? '#252526' : '#fff',
-    text: isDark ? '#D4D4D4' : '#333',
-    title: isDark ? '#4CAF50' : '#1B5E20',
-    subtitle: isDark ? '#858585' : '#666',
-    inputBg: isDark ? '#3C3C3C' : '#f9f9f9',
-    inputBorder: isDark ? '#333' : '#eee',
-    cardBorder: isDark ? '#333' : '#eee',
-    headerBg: isDark ? '#2D2D2D' : '#f1f8e9',
-    headerBorder: isDark ? '#4CAF50' : '#1B5E20',
-    modalBg: isDark ? '#1E1E1E' : '#fff',
-  };
 
   // Handler modificado para ser chamado pelo SplashScreen
   const handleLoginSuccessAndPromptCheck = async () => {
@@ -136,7 +125,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={styles.container}>
       <View style={{ alignSelf: 'flex-start', marginBottom: 10, marginLeft: -10 }}>
         <Logo />
       </View>
@@ -151,7 +140,7 @@ export default function HomeScreen() {
             onPress={() => setIsSavedListsModalVisible(true)}
             style={{ padding: 8, backgroundColor: theme.headerBg, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4 }}
           >
-            <MaterialIcons name="list-alt" size={24} color={theme.title} />
+            <MaterialIcons name="list-alt" size={24} color={theme.logo} />
             {savedPurchases.length > 0 && (
               <View style={{ backgroundColor: '#F44336', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 }}>
                 <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{savedPurchases.length}</Text>
@@ -161,10 +150,10 @@ export default function HomeScreen() {
           {quickLists.length > 0 && (
             <TouchableOpacity 
               onPress={() => setIsQuickListsModalVisible(true)}
-              style={{ padding: 8, backgroundColor: theme.headerBg, borderRadius: 12 }}
+              style={{ padding: 8, backgroundColor: theme.headerBg, borderRadius: 12, position: 'relative' }}
             >
-              <MaterialIcons name="flash-on" size={24} color="#EF6C00" />
-              <View style={{ position: 'absolute', top: -5, right: -5, backgroundColor: '#F44336', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name="flash-on" size={24} color={theme.orange} />
+              <View style={{ position: 'absolute', top: -5, right: -5, backgroundColor: theme.cancelBtn, borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
                 <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{quickLists.length}</Text>
               </View>
             </TouchableOpacity>
@@ -177,7 +166,7 @@ export default function HomeScreen() {
       <View style={{ zIndex: 10 }}>
         <TextInput
           ref={inputRef}
-          style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
+          style={styles.input}
           placeholder="Nome do item"
           value={input}
           placeholderTextColor={isDark ? '#858585' : '#999'}
@@ -188,11 +177,11 @@ export default function HomeScreen() {
           onFocus={() => setShowSuggestions(true)}
         />
         {showSuggestions && filteredSuggestions.length > 0 && (
-          <View style={[styles.suggestionBox, { position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: theme.surface, borderColor: theme.inputBorder, zIndex: 11, elevation: 5 }]}>
+          <View style={styles.suggestionBox}>
             {filteredSuggestions.map(({ item }) => (
               <TouchableOpacity
                 key={item}
-                style={[styles.suggestionItem, { borderBottomColor: theme.cardBorder }]}
+                style={styles.suggestionItem}
                 onPress={() => {
                   setInput(item);
                   setShowSuggestions(false);
@@ -208,7 +197,7 @@ export default function HomeScreen() {
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
           <TextInput
             ref={quantidadeInputRef}
-            style={[styles.quantidadeText, { width: 110, backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
+            style={[styles.quantidadeText, { width: 110 }]}
             placeholder="Quantidade"
             value={quantidade}
             placeholderTextColor={isDark ? '#858585' : '#999'}
@@ -216,20 +205,16 @@ export default function HomeScreen() {
             onFocus={() => setShowSuggestions(false)} // Esconde sugestões ao focar na quantidade
             keyboardType="numeric"
           />
-          <TouchableOpacity style={[styles.addBtn, { backgroundColor: '#4CAF50' }]} onPress={handleAddItem}>
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.accent }]} onPress={handleAddItem}>
             <MaterialIcons name="add" size={28} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, marginBottom: 10 }}>
-        <Text style={[styles.title, { 
-          marginBottom: 0,
-          fontSize: 24, 
-          fontWeight: '900', 
-          color: theme.title, 
-          letterSpacing: -1
-        }]}>Sua lista ({totalItems})</Text>
+        <Text style={[styles.title, { marginBottom: 0, fontSize: 24, letterSpacing: -1 }]}>
+          Sua lista ({totalItems})
+        </Text>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <TouchableOpacity 
             onPress={handleSortChange}
@@ -237,8 +222,8 @@ export default function HomeScreen() {
           >
             <MaterialIcons 
               name="sort" 
-              size={28} 
-              color={sortBy === 'alphabetical' ? '#4CAF50' : theme.text} 
+              size={28}
+              color={sortBy === 'alphabetical' ? theme.accent : theme.text}
             />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleDeleteAll} style={{ padding: 5 }}>
@@ -253,21 +238,9 @@ export default function HomeScreen() {
         renderItem={({ item: row }) => {
           if (row.type === 'header') {
             return (
-              <TouchableOpacity onPress={() => toggleGroup(row.grupo)} style={{
-                backgroundColor: theme.headerBg,
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                marginTop: 15,
-                marginBottom: 8,
-                borderRadius: 6,
-                borderLeftWidth: 5,
-                borderLeftColor: theme.headerBorder,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8
-              }}>
+              <TouchableOpacity onPress={() => toggleGroup(row.grupo)} style={styles.headerGroup}>
                 <MaterialIcons name={groupIcons[row.grupo]} size={18} color={theme.title} />
-                <Text style={{ fontWeight: '900', color: theme.title, textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>
+                <Text style={styles.headerGroupText}>
                   {row.grupo} ({row.count})
                 </Text>
                 <MaterialIcons
@@ -281,43 +254,45 @@ export default function HomeScreen() {
           } else {
             const item = row.item;
             return (
-              <View style={[styles.itemContainer, { backgroundColor: theme.surface, borderColor: theme.cardBorder }]}>
+              <View style={styles.itemContainer}>
                 <View style={styles.itemContent}>
                   <View>
-                    <Text style={[styles.itemText, { color: theme.text }]}>{item.name}</Text>
+                    <Text style={styles.itemText}>{item.name}</Text>
                     <View style={{ marginTop: 4 }}>
-                      <Text style={[styles.itemText, { fontSize: 14, color: theme.subtitle, fontWeight: 'bold' }]}>Qtd: {formatDecimal(item.quantidade)}</Text>
+                      <Text style={[styles.itemText, { fontSize: 14, color: theme.subtitle, fontWeight: 'bold' }]}>
+                        Qtd: {formatDecimal(item.quantidade)}
+                      </Text>
                     </View>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 5 }}>
-                  <TouchableOpacity onPress={() => openEditModal(item)} style={{ padding: 5 }}>
-                    <MaterialIcons name="edit" size={24} color="#2196F3" />
+                  <TouchableOpacity onPress={() => openEditModal(item)} style={{ padding: 5, borderRadius: 5 }}>
+                    <MaterialIcons name="edit" size={24} color={theme.buttonBlue} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDeleteItem(item)} style={{ padding: 5 }}>
-                    <MaterialIcons name="delete-outline" size={24} color="#F44336" />
+                  <TouchableOpacity onPress={() => handleDeleteItem(item)} style={{ padding: 5, borderRadius: 5 }}>
+                    <MaterialIcons name="delete-outline" size={24} color={theme.cancelBtn} />
                   </TouchableOpacity>
                 </View>
               </View>
             );
           }
         }}
-        ListEmptyComponent={<Text style={{ color: theme.subtitle }}>Nenhum item salvo.</Text>}
+        ListEmptyComponent={<Text style={{ textAlign: 'center', color: theme.subtitle, marginTop: 10 }}>Nenhum item salvo.</Text>}
         style={styles.list}
       />
 
-      <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-        <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: '#F44336' }]} onPress={handleLogout}>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 10, paddingBottom: 10 }}>
+        <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: theme.cancelBtn }]} onPress={handleLogout}>
           <Text style={styles.addBtnText}>Sair</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.addBtn, { flex: 1, backgroundColor: '#FF9800' }, items.length === 0 && { backgroundColor: '#ccc' }]} 
+          style={[styles.addBtn, { flex: 1, backgroundColor: theme.orange }, items.length === 0 && { backgroundColor: '#ccc' }]} 
           onPress={() => items.length > 0 && setIsSaveModalVisible(true)}
         >
           <Text style={styles.addBtnText}>Salvar Lista</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50' }, items.length === 0 && { backgroundColor: '#ccc' }]} 
+          style={[styles.addBtn, { flex: 1, backgroundColor: theme.accent }, items.length === 0 && { backgroundColor: '#ccc' }]} 
           onPress={handleConfirm}
           disabled={items.length === 0}
         >
@@ -372,7 +347,7 @@ export default function HomeScreen() {
       <Modal visible={isQuickListsModalVisible} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
           <View style={{ backgroundColor: theme.modalBg, padding: 20, borderRadius: 20, width: '90%', maxHeight: '80%' }}>
-            <Text style={[styles.title, { color: '#EF6C00', fontSize: 22 }]}>Listagens Rápidas</Text>
+            <Text style={[styles.title, { color: theme.orange, fontSize: 22 }]}>Listagens Rápidas</Text>
             <Text style={{ marginBottom: 15, color: theme.subtitle }}>Itens não comprados em sessões anteriores.</Text>
             
             <FlatList
@@ -386,8 +361,8 @@ export default function HomeScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.text }}>{item.date}</Text>
                       {exp && (
-                        <View style={{ backgroundColor: exp.isExpired ? '#FFCDD2' : '#E3F2FD', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                          <Text style={{ fontSize: 10, color: exp.isExpired ? '#C62828' : '#1976D2', fontWeight: 'bold' }}>{exp.text}</Text>
+                        <View style={{ backgroundColor: exp.isExpired ? theme.expiredBg : theme.notExpiredBg, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                          <Text style={{ fontSize: 10, color: exp.isExpired ? theme.expiredText : theme.notExpiredText, fontWeight: 'bold' }}>{exp.text}</Text>
                         </View>
                       )}
                     </View>
@@ -426,8 +401,8 @@ export default function HomeScreen() {
                     }}>
                       <MaterialIcons name="add-task" size={28} color="#4CAF50" />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteQuickList(item.id)}>
-                      <MaterialIcons name="delete-outline" size={28} color="#F44336" />
+                    <TouchableOpacity onPress={() => handleDeleteQuickList(item.id)} style={{ padding: 5 }}>
+                      <MaterialIcons name="delete-outline" size={28} color={theme.cancelBtn} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -436,8 +411,8 @@ export default function HomeScreen() {
               ListEmptyComponent={<Text style={{ textAlign: 'center', padding: 20, color: theme.subtitle }}>Nenhuma listagem rápida disponível.</Text>}
             />
             
-            <TouchableOpacity 
-              style={[styles.addBtn, { marginTop: 15, backgroundColor: '#F44336' }]} 
+            <TouchableOpacity
+              style={[styles.addBtn, { marginTop: 15, backgroundColor: theme.cancelBtn }]}
               onPress={() => setIsQuickListsModalVisible(false)}
             >
               <Text style={styles.addBtnText}>Cancelar</Text>

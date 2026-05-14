@@ -1,47 +1,32 @@
 import { StyleSheet } from 'react-native';
+import { themeColors } from '../../ThemeContext';
 
-export const styles = StyleSheet.create({
+type Theme = typeof themeColors.light;
+
+export const createStyles = (theme: Theme) => StyleSheet.create({
     container: {
         flex: 1,
         padding: 16,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: theme.background,
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 16,
+        color: theme.title,
     },
     input: {
         borderWidth: 1,
-        borderColor: '#ddd',
+        borderColor: theme.inputBorder,
         fontSize: 16,
         padding: 12,
         borderRadius: 8,
         marginBottom: 12,
-        backgroundColor: '#fff',
-    },
-    buttonGroup: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 12,
-    },
-    groupBtn: {
-        flex: 1,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        backgroundColor: '#e0e0e0',
-        alignItems: 'center',
-    },
-    groupBtnActive: {
-        backgroundColor: '#007AFF',
-    },
-    groupBtnText: {
-        fontWeight: '600',
-        color: '#333',
+        backgroundColor: theme.inputBg,
+        color: theme.text,
     },
     addBtn: {
-        backgroundColor: '#007AFF',
+        backgroundColor: theme.accent,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: 'center',
@@ -59,10 +44,12 @@ export const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: theme.surface,
         padding: 12,
         borderRadius: 8,
         marginBottom: 8,
+        borderWidth: 1,
+        borderColor: theme.cardBorder,
     },
     itemContent: {
         flex: 1,
@@ -70,33 +57,19 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 12,
     },
-    badge: {
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        borderRadius: 6,
-    },
-    badgeText: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: '600',
-    },
     itemText: {
         fontSize: 16,
-    },
-    deleteBtn: {
-        fontSize: 20,
-        color: '#FF6B6B',
-        fontWeight: 'bold',
+        color: theme.text,
     },
     suggestionBox: {
         position: 'absolute',
         top: 55,
         left: 0,
         right: 0,
-        backgroundColor: '#fff',
+        backgroundColor: theme.surface,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#ddd',
+        borderColor: theme.inputBorder,
         elevation: 5,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -106,15 +79,36 @@ export const styles = StyleSheet.create({
     suggestionItem: {
         padding: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: theme.cardBorder,
     },
     quantidadeText: {
         borderWidth: 1,
-        borderColor: '#ddd',
+        borderColor: theme.inputBorder,
         fontSize: 16,
         padding: 12,
         borderRadius: 8,
         marginBottom: 12,
-        backgroundColor: '#fff',
+        backgroundColor: theme.inputBg,
+        color: theme.text,
+    },
+    headerGroup: {
+        backgroundColor: theme.headerBg,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        marginTop: 15,
+        marginBottom: 8,
+        borderRadius: 6,
+        borderLeftWidth: 5,
+        borderLeftColor: theme.headerBorder,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8
+    },
+    headerGroupText: {
+        fontWeight: '900',
+        color: theme.title,
+        textTransform: 'uppercase',
+        fontSize: 13,
+        letterSpacing: 0.5
     },
 });

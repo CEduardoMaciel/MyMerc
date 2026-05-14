@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { LayoutAnimation, Alert } from 'react-native';
-import { getItemAsync, setItemAsync } from 'expo-secure-store';
-import { USER_CRED_KEY, getActiveListKey, getSavedKey, getQuickListsKey, formatDecimal } from './app/utils'; // Import formatDecimal
+import { setItemAsync } from 'expo-secure-store';
+import { storageService } from './storageService';
+import { formatDecimal, normalizeString } from './app/utils';
 import { Item as BaseItem } from './constants'; 
 import { sugestoes } from './sugestoes'; // Importar sugestoes
 import { useAuthAndDataLoading } from './useAuthAndDataLoading';
@@ -117,13 +118,11 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
 
   useEffect(() => {
     const loadItems = async () => {
-      const creds = await getItemAsync(USER_CRED_KEY);
-      const user = creds ? JSON.parse(creds).u : 'admin';
-      const activeKey = getActiveListKey(user);
+      const user = await storageService.getCurrentUser();
+      const stored = await storageService.getActiveList(user);
 
-      const stored = await getItemAsync(activeKey);
       if (stored) {
-        const items: Item[] = JSON.parse(stored);
+        const items: Item[] = stored;
         const parsedItems: Item[] = items.map((item: Item) => ({
           ...item,
           status: item.status || 'pending',
@@ -140,9 +139,6 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
     };
     loadItems();
   }, []);
-
-  useEffect(() => {
-  }, []); 
 
   const sortedNotPurchasedItems = useMemo(() => {
     const allItems = [...shoppingList, ...tempItems];
@@ -288,10 +284,6 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
     }
   };
 
-  const normalizeString = (str: string) => {
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  };
-
   const handleSavePurchase = async () => {
     if (!saveName.trim()) {
       Alert.alert('Erro', 'Dê um nome para esta compra');
@@ -299,12 +291,8 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
     }
 
     try {
-      const creds = await getItemAsync(USER_CRED_KEY);
-      const user = creds ? JSON.parse(creds).u : 'admin';
-      const key = getSavedKey(user);
-
-      const saved = await getItemAsync(key);
-      let savedLists = saved ? JSON.parse(saved) : [];
+      const user = await storageService.getCurrentUser();
+      let savedLists = await storageService.getSavedPurchases(user);
 
       if (savedLists.some((p: any) => p.name.toLowerCase() === saveName.trim().toLowerCase())) {
         Alert.alert('Erro', 'Já existe uma compra salva com este nome');
@@ -323,7 +311,7 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
         .map(i => ({ ...i, status: 'pending', isConfirmed: false, isConfirming: false }));
       savedLists.push({ name: saveName.trim(), items: itemsToSave });
 
-      await setItemAsync(key, JSON.stringify(savedLists));
+      await storageService.savePurchases(user, savedLists);
       setIsSaveModalVisible(false);
       setShowSummaryModal(true);
     } catch (e) {
@@ -399,19 +387,15 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
             text: 'Sim, Gerar',
             onPress: async () => {
               try {
-                const creds = await getItemAsync(USER_CRED_KEY);
-                const user = creds ? JSON.parse(creds).u : 'admin';
-                const key = getQuickListsKey(user);
-
-                const stored = await getItemAsync(key);
-                let quickLists = stored ? JSON.parse(stored) : [];
+                const user = await storageService.getCurrentUser();
+                let quickLists = await storageService.getQuickLists(user);
 
                 if (quickLists.length >= 3) {
                   Alert.alert('Limite atingido', 'Você já possui 3 listagens rápidas salvas. Exclua uma na tela inicial para poder gerar uma nova.');
                   return resolve(false);
                 }
 
-                const newList = {
+                const newList: any = { // Adicionado 'any' temporariamente para evitar erro de tipo com 'id' e 'date'
                   id: Date.now().toString(),
                   date: new Date().toLocaleDateString('pt-BR'),
                   timestamp: Date.now(),
@@ -420,7 +404,7 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
 
                 quickLists = [newList, ...quickLists];
 
-                await setItemAsync(key, JSON.stringify(quickLists));
+                await storageService.saveQuickLists(user, quickLists);
                 setQuickLists(quickLists);
                 Alert.alert('Sucesso', 'Listagem rápida gerada!');
                 resolve(true);

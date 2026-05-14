@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { styles } from './app/(tabs)/style';
+import { createStyles } from './app/(tabs)/style';
+import { useAppTheme } from './ThemeContext';
 
 import { useAuthAndDataLoading } from './useAuthAndDataLoading';
 interface SaveListModalProps {
@@ -20,31 +21,21 @@ export const SaveListModal: React.FC<SaveListModalProps> = ({
   onSave,
   onCancel,
 }) => {
-  const { settings } = useAuthAndDataLoading();
-  const isDark = settings.theme === 'dark';
-  const theme = {
-    modalBg: isDark ? '#1E1E1E' : '#fff',
-    text: isDark ? '#D4D4D4' : '#333',
-    title: isDark ? '#4CAF50' : '#1B5E20',
-    subtitle: isDark ? '#858585' : '#666',
-    inputBg: isDark ? '#3C3C3C' : '#fff',
-    inputBorder: isDark ? '#333' : '#ddd',
-    placeholder: isDark ? '#888' : '#999',
-    buttonCancel: '#F44336',
-  };
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
 
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={localStyles.modalOverlay}>
         <View style={[localStyles.modalContent, { backgroundColor: theme.modalBg }]}>
-          <Text style={[styles.title, { fontSize: 22, color: theme.title }]}>Salvar Lista Atual</Text>
+          <Text style={[styles.title, { fontSize: 22 }]}>Salvar Lista Atual</Text>
           <Text style={{ marginBottom: 15, textAlign: 'center', color: theme.subtitle }}>Dê um nome para identificar esta compra futuramente.</Text>
           <TextInput
-            style={[styles.input, { width: '100%', backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
+            style={[styles.input, { width: '100%' }]}
             value={saveName}
             onChangeText={setSaveName}
             placeholder="Ex: Lista 1" // @ts-ignore
-            placeholderTextColor={theme.placeholder}
+            placeholderTextColor={theme.subtitle}
             autoFocus
           />
           <Text style={{ fontSize: 12, color: theme.subtitle, marginTop: 5 }}>
@@ -52,13 +43,13 @@ export const SaveListModal: React.FC<SaveListModalProps> = ({
           </Text>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
             <TouchableOpacity
-              style={[styles.addBtn, { flex: 1, backgroundColor: theme.buttonCancel }]}
+              style={[styles.addBtn, { flex: 1, backgroundColor: theme.cancelBtn }]}
               onPress={onCancel}
             >
               <Text style={styles.addBtnText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.addBtn, { flex: 1, backgroundColor: '#FF9800' }]}
+              style={[styles.addBtn, { flex: 1, backgroundColor: theme.orange }]}
               onPress={onSave}
             >
               <Text style={styles.addBtnText}>Gravar</Text>

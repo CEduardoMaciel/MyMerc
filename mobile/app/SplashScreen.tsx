@@ -1,179 +1,36 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing, Dimensions, TextInput, Alert, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions, TextInput, Alert, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
-import { AUTH_KEY, USER_CRED_KEY, PROFILES_KEY, getActiveListKey, getSavedKey } from './utils'; // Importar constantes de utils
-import { useAuthAndDataLoading } from '../useAuthAndDataLoading';
+import { AUTH_KEY, USER_CRED_KEY } from './utils';
+import { useSplashAnimations } from '../useSplashAnimations';
+import { useProfileManager } from '../useProfileManager';
+import { useAppTheme } from '../ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const router = useRouter();
-  const cartScale = useRef(new Animated.Value(0.1)).current;
-  const cartMove = useRef(new Animated.Value(-200)).current;
-  const cartShake = useRef(new Animated.Value(0)).current;
-  const roadOpacity = useRef(new Animated.Value(0)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.5)).current;
-  const logoTranslateY = useRef(new Animated.Value(0)).current;
+  const theme = useAppTheme();
+  const {
+    cartScale, cartMove, cartShake, roadOpacity, logoOpacity, logoScale, logoTranslateY,
+    handAnimY, handOpacity, productAnimY, productOpacity,
+    loginOpacity, loginTranslateY, particles, particlesOpacity,
+    startEntranceSequence, startExitSequence
+  } = useSplashAnimations();
 
-  // Animação da Mão e Produto
-  const handAnimY = useRef(new Animated.Value(-150)).current;
-  const handOpacity = useRef(new Animated.Value(0)).current;
-  const productAnimY = useRef(new Animated.Value(-130)).current;
-  const productOpacity = useRef(new Animated.Value(0)).current;
+  const { 
+    profiles, username, setUsername, isCreatingProfile, setIsCreatingProfile, 
+    handleCreateProfile, handleDeleteProfile 
+  } = useProfileManager();
 
-  // Animações do Login
-  const loginOpacity = useRef(new Animated.Value(0)).current;
-  const loginTranslateY = useRef(new Animated.Value(30)).current;
-  
-  // Partículas de poeira
-  const particles = useRef([...Array(12)].map(() => new Animated.ValueXY({ x: 0, y: 0 }))).current;
-  const particlesOpacity = useRef(new Animated.Value(0)).current;
-  const userInputRef = useRef<TextInput>(null);
-
-  // Estado do Login
-  const [username, setUsername] = useState('');
-  const [profiles, setProfiles] = useState<string[]>([]);
-  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
-  const { settings } = useAuthAndDataLoading();
-
-  const isDark = settings.theme === 'dark';
-  const theme = {
-    background: isDark ? '#1E1E1E' : '#fff',
-    text: isDark ? '#D4D4D4' : '#333',
-    logo: isDark ? '#A5D6A7' : '#1B5E20',
-    inputBg: isDark ? '#3C3C3C' : '#f9f9f9',
-    inputBorder: isDark ? '#333' : '#eee',
-    card: isDark ? '#252526' : '#f9f9f9',
-    secondaryText: isDark ? '#B0BEC5' : '#666',
-    road: isDark ? '#333' : '#eee',
-  };
-
-  const loadProfiles = useCallback(async () => {
-    try {
-      const stored = await SecureStore.getItemAsync(PROFILES_KEY);
-      let list: string[] = stored ? JSON.parse(stored) : [];
-      
-      // Migração: Se não houver lista mas houver um usuário antigo no USER_CRED_KEY
-      const oldCreds = await SecureStore.getItemAsync(USER_CRED_KEY);
-      if (list.length === 0) {
-        if (oldCreds) {
-          const parsed = JSON.parse(oldCreds);
-          if (parsed?.u) list = [parsed.u];
-        } else {
-          list = ['Admin']; // Perfil padrão inicial
-        }
-        await SecureStore.setItemAsync(PROFILES_KEY, JSON.stringify(list));
-      }
-      
-      setProfiles(list);
-    } catch (error) {
-      setProfiles(['Admin']);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadProfiles();
-
-    // Sequência de Animação
-    Animated.sequence([
-      // 1. Estrada aparece
-      Animated.timing(roadOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
-      
-      // 2. Carrinho vem rápido e aumenta (perspectiva)
-      Animated.parallel([
-        Animated.timing(cartMove, {
-          toValue: 20,
-          duration: 1000,
-          easing: Easing.bezier(0.1, 1, 0.3, 1), // Entrada rápida, parada brusca
-          useNativeDriver: true,
-        }),
-        Animated.timing(cartScale, {
-          toValue: 3,
-          duration: 1000,
-          easing: Easing.bezier(0.1, 1, 0.3, 1),
-          useNativeDriver: true,
-        }),
-      ]),
-
-      // 2.5 Efeito de Freio (Tremedeira estilo desenho animado)
-      Animated.sequence([
-        Animated.timing(cartShake, { toValue: 15, duration: 50, useNativeDriver: true }),
-        Animated.timing(cartShake, { toValue: -15, duration: 50, useNativeDriver: true }),
-        Animated.timing(cartShake, { toValue: 10, duration: 50, useNativeDriver: true }),
-        Animated.timing(cartShake, { toValue: -10, duration: 50, useNativeDriver: true }),
-        Animated.timing(cartShake, { toValue: 0, duration: 50, useNativeDriver: true }),
-      ]),
-
-      // 2.7 Mão colocando produto no carrinho (Estilo Coyote)
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(handOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-          Animated.timing(productOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-        ]),
-        Animated.parallel([
-          Animated.timing(handAnimY, { toValue: -40, duration: 600, useNativeDriver: true }),
-          Animated.timing(productAnimY, { toValue: 0, duration: 600, useNativeDriver: true }),
-        ]),
-        Animated.timing(productOpacity, { toValue: 0, duration: 150, useNativeDriver: true }), // Produto "cai" no carrinho
-        Animated.parallel([
-          Animated.timing(handAnimY, { toValue: -150, duration: 500, useNativeDriver: true }),
-          Animated.timing(handOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
-        ]),
-      ]),
-
-      // 3. Freio e Poeira (Partículas saindo do carrinho)
-      Animated.parallel([
-        Animated.timing(particlesOpacity, { toValue: 1, duration: 100, useNativeDriver: true }),
-        ...particles.map((p, i) => 
-          Animated.parallel([
-            Animated.timing(p.x, {
-              toValue: (i % 2 === 0 ? -1 : 1) * (Math.random() * 100 + 50),
-              duration: 800,
-              easing: Easing.out(Easing.exp),
-              useNativeDriver: true,
-            }),
-            Animated.timing(p.y, {
-              toValue: -Math.random() * 100 - 20,
-              duration: 800,
-              easing: Easing.out(Easing.exp),
-              useNativeDriver: true,
-            })
-          ])
-        ),
-        // 4. Poeira se transforma no Logo
-        Animated.sequence([
-          Animated.delay(200),
-          Animated.parallel([
-            Animated.timing(logoOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
-            Animated.spring(logoScale, { toValue: 1, friction: 5, useNativeDriver: true }),
-            Animated.timing(particlesOpacity, { toValue: 0, duration: 1000, useNativeDriver: true }),
-          ])
-        ])
-      ]),
-
-      // 5. Transição para o Login (Logo sobe e campos aparecem)
-      Animated.parallel([
-        Animated.timing(logoTranslateY, { toValue: -120, duration: 800, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-        Animated.timing(loginOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.timing(loginTranslateY, { toValue: 0, duration: 600, useNativeDriver: true }),
-      ])
-    ]).start();
-  }, []);
+  useEffect(() => { startEntranceSequence(); }, []);
 
   const handleSelectProfile = async (selectedUser: string) => {
     try {
-      // Salva qual é o perfil atual para o index.tsx ler
       await SecureStore.setItemAsync(USER_CRED_KEY, JSON.stringify({ u: selectedUser }));
-      
-      // Efeito visual de sucesso
-      Animated.parallel([
-        Animated.timing(loginOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-        Animated.timing(logoScale, { toValue: 1.3, duration: 400, useNativeDriver: true }),
-        Animated.timing(logoOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
-      ]).start(async () => {
+      startExitSequence(async () => {
         await SecureStore.setItemAsync(AUTH_KEY, 'true');
         onFinish();
       });
@@ -181,76 +38,9 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
       Alert.alert('Erro', 'Falha ao selecionar perfil');
     }
   };
-
-  const handleCreateProfile = async () => {
-    const lowerUsername = username.trim();
-    if (!lowerUsername) {
-      Alert.alert('Atenção', 'Digite um nome para o perfil');
-      return;
-    }
-
-    if (lowerUsername.toLowerCase() === 'admin') {
-      Alert.alert('Atenção', 'O nome "Admin" é reservado para o sistema.');
-      return;
-    }
-
-    try {
-      if (profiles.includes(lowerUsername)) {
-        Alert.alert('Atenção', 'Este perfil já existe.');
-        return;
-      }
-
-      const newList = [...profiles, lowerUsername.toLowerCase()];
-      await SecureStore.setItemAsync(PROFILES_KEY, JSON.stringify(newList));
-      setProfiles(newList);
-      
-      Alert.alert('Sucesso', 'Perfil criado!', [{ 
-        text: 'OK', 
-        onPress: () => {
-          setIsCreatingProfile(false);
-          setUsername('');
-        } 
-      }]);
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar o perfil');
-    }
-  };
-
-  const handleDeleteProfile = (profileToDelete: string) => {
-    Alert.alert(
-      'Excluir Perfil',
-      `Tem certeza que deseja excluir o perfil "${profileToDelete.charAt(0).toUpperCase() + profileToDelete.slice(1)}"?\n\nIsso apagará permanentemente a lista atual e as listas salvas deste usuário.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Excluir', 
-          style: 'destructive', 
-          onPress: async () => {
-            try {
-              const newList = profiles.filter(p => p !== profileToDelete);
-              await SecureStore.setItemAsync(PROFILES_KEY, JSON.stringify(newList));
-              
-              // Limpa os dados vinculados ao perfil para economizar espaço
-              await SecureStore.deleteItemAsync(getActiveListKey(profileToDelete));
-              await SecureStore.deleteItemAsync(getSavedKey(profileToDelete));
-              
-              setProfiles(newList);
-            } catch (error) {
-              console.error('Erro ao excluir:', error);
-              Alert.alert('Erro', 'Não foi possível excluir o perfil');
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const handleOpenProfileSettings = async (item: string) => {
-    await SecureStore.setItemAsync(USER_CRED_KEY, JSON.stringify({ u: item }));
-    await SecureStore.setItemAsync(AUTH_KEY, 'true');
-    onFinish();
-    router.push('/configuracao');
-  };
+  
+  // Centralização de estilos baseada no tema facilitada pelo Hook useAppTheme
+  const isDark = theme.background !== '#fff';
 
   const renderProfileItem = ({ item }: { item: string }) => (
     <View style={localStyles.profileItemContainer}>
@@ -258,11 +48,11 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
         style={[localStyles.profileCard, { backgroundColor: theme.card, borderColor: theme.inputBorder }]} 
         onPress={() => handleSelectProfile(item)}
       >
-        <View style={[localStyles.profileIcon, { backgroundColor: isDark ? '#2D2D2D' : '#E8F5E9' }]}>
+        <View style={[localStyles.profileIcon, { backgroundColor: theme.headerBg }]}>
           <MaterialIcons name="person" size={24} color={theme.logo} />
         </View>
         <Text style={[localStyles.profileName, { color: theme.text }]}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
-        <MaterialIcons name="chevron-right" size={24} color={isDark ? '#555' : '#ccc'} />
+        <MaterialIcons name="chevron-right" size={24} color={theme.subtitle} />
       </TouchableOpacity>
       
       <TouchableOpacity 
@@ -300,7 +90,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             transform: [{ translateY: productAnimY }],
             zIndex: 5
           }}>
-            <MaterialIcons name="archive" size={24} color="#FF9800" />
+            <MaterialIcons name="archive" size={24} color={theme.orange} />
           </Animated.View>
           
           <Animated.View style={{
@@ -321,7 +111,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             ],
             zIndex: 1
           }}>
-            <MaterialIcons name="shopping-cart" size={40} color="#4CAF50" />
+            <MaterialIcons name="shopping-cart" size={40} color={theme.accent} />
           </Animated.View>
 
           <Animated.View style={{ 
@@ -337,7 +127,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             >
               <Text style={[localStyles.logoText, { color: theme.logo }]}>MyMerc</Text>
             </TouchableOpacity>
-            <Text style={[localStyles.tagline, { color: theme.secondaryText }]}>Suas compras em ordem</Text>
+            <Text style={[localStyles.tagline, { color: theme.subtitle }]}>Suas compras em ordem</Text>
           </Animated.View>
         </Animated.View>
 
@@ -369,9 +159,9 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
                 value={username}
                 placeholderTextColor={isDark ? '#888' : '#999'}
                 onChangeText={setUsername}
-                autoFocus
+                autoFocus // useProfileManager controla o estado
               />
-              <TouchableOpacity style={localStyles.enterBtn} onPress={handleCreateProfile}>
+              <TouchableOpacity style={[localStyles.enterBtn, { backgroundColor: theme.accent }]} onPress={handleCreateProfile}>
                 <Text style={localStyles.enterBtnText}>Criar Perfil</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setIsCreatingProfile(false)} style={{ marginTop: 15, alignItems: 'center' }}>
@@ -391,8 +181,8 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
                 onPress={() => setIsCreatingProfile(true)}
                 style={localStyles.addProfileBtn}
             >
-                <MaterialIcons name="add-circle-outline" size={20} color="#4CAF50" />
-                <Text style={localStyles.addProfileText}>Novo Perfil</Text>
+                <MaterialIcons name="add-circle-outline" size={20} color={theme.accent} />
+                <Text style={[localStyles.addProfileText, { color: theme.accent }]}>Novo Perfil</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -485,7 +275,6 @@ const localStyles = StyleSheet.create({
     color: '#333'
   },
   enterBtn: {
-    backgroundColor: '#4CAF50',
     padding: 15,
     borderRadius: 30,
     alignItems: 'center',

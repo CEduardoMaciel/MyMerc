@@ -1,10 +1,10 @@
 import React from 'react';
 import { Modal, View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons'; // Assuming this path is correct
-import { styles } from './app/(tabs)/style';
+import { createStyles } from './app/(tabs)/style';
 import { formatDecimal } from './app/utils';
 import { Item } from './constants'; // Importa a interface Item centralizada
-import { useAuthAndDataLoading } from './useAuthAndDataLoading';
+import { useAppTheme } from './ThemeContext';
 
 interface PreviewSavedListModalProps {
   visible: boolean;
@@ -21,16 +21,8 @@ export const PreviewSavedListModal: React.FC<PreviewSavedListModalProps> = ({
 }) => {
   if (!previewData) return null;
 
-  const { settings } = useAuthAndDataLoading();
-  const isDark = settings.theme === 'dark';
-  const theme = {
-    modalBg: isDark ? '#1E1E1E' : '#fff',
-    text: isDark ? '#D4D4D4' : '#333',
-    title: isDark ? '#4CAF50' : '#1B5E20',
-    border: isDark ? '#333' : '#eee',
-    buttonCancel: '#2196F3',
-    buttonAccent: isDark ? '#4CAF50' : '#4CAF50',
-  };
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -59,14 +51,14 @@ export const PreviewSavedListModal: React.FC<PreviewSavedListModalProps> = ({
 
           <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
             <TouchableOpacity
-              style={[styles.addBtn, { flex: 1, backgroundColor: theme.buttonCancel, height: 45 }]}
+              style={[styles.addBtn, { flex: 1, backgroundColor: theme.cancelBtn, height: 45 }]}
               onPress={onCancel}
             >
               <Text style={styles.addBtnText}>Voltar</Text>
             </TouchableOpacity>
             {onLoadList && (
               <TouchableOpacity
-                style={[styles.addBtn, { flex: 1, backgroundColor: theme.buttonAccent, height: 45 }]}
+                style={[styles.addBtn, { flex: 1, backgroundColor: theme.accent, height: 45 }]}
                 onPress={() => onLoadList(previewData.items)}
               >
                 <Text style={styles.addBtnText}>Usar Lista</Text>

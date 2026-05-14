@@ -4,7 +4,8 @@ import { MaterialIcons } from '@expo/vector-icons'; // Assuming this path is cor
 import { styles } from './app/(tabs)/style';
 import { formatDecimal } from './app/utils';
 import { Item as BaseItem } from './constants'; // Importa a interface Item centralizada
-import { useAuthAndDataLoading } from './useAuthAndDataLoading';
+import { useAppTheme } from './ThemeContext';
+import { createStyles } from './app/(tabs)/style';
 
 interface Item extends BaseItem { // Estende a interface Item para adicionar 'status'
   status: 'pending' | 'confirmed' | 'not_purchased';
@@ -23,16 +24,8 @@ export const NotPurchasedModal: React.FC<NotPurchasedModalProps> = ({
   onClose,
   onRestore,
 }) => {
-  const { settings } = useAuthAndDataLoading();
-  const isDark = settings.theme === 'dark';
-  const theme = {
-    modalBg: isDark ? '#1E1E1E' : '#fff',
-    text: isDark ? '#D4D4D4' : '#333',
-    title: isDark ? '#4CAF50' : '#1B5E20',
-    subtitle: isDark ? '#858585' : '#666',
-    cardBg: isDark ? '#2D2D2D' : '#FFF3E0',
-    cardBorder: isDark ? '#333' : '#FFE0B2',
-  };
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -57,8 +50,8 @@ export const NotPurchasedModal: React.FC<NotPurchasedModalProps> = ({
                     <Text style={{ fontSize: 12, color: theme.subtitle }}>Qtd: {formatDecimal(item.quantidade)}</Text>
                   </View>
                   <TouchableOpacity
-                    onPress={() => onRestore(item)}
-                    style={{ backgroundColor: '#4CAF50', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }}
+                    onPress={() => onRestore(item)} // @ts-ignore
+                    style={{ backgroundColor: theme.accent, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }}
                   >
                     <MaterialIcons name="settings-backup-restore" size={24} color="white" />
                   </TouchableOpacity>

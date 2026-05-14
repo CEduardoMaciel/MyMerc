@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react';
-import { getItemAsync, setItemAsync, deleteItemAsync } from 'expo-secure-store';
-import { AUTH_KEY, USER_CRED_KEY, getActiveListKey, getSavedKey, getQuickListsKey } from './app/utils';
-import { Item } from './constants'; // Assuming Item interface is shared
+import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { AUTH_KEY, USER_CRED_KEY, getQuickListsKey } from './app/utils';
+import { storageService } from './storageService';
+import { Item } from './constants';
 
 export interface UserSettings {
   theme: 'light' | 'dark';
@@ -47,29 +48,27 @@ export const AuthAndDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        const storedSettings = await getItemAsync(GLOBAL_SETTINGS_KEY);
+        const storedSettings = await SecureStore.getItemAsync(GLOBAL_SETTINGS_KEY);
         if (storedSettings) setSettings(JSON.parse(storedSettings));
 
-        const auth = await getItemAsync(AUTH_KEY);
+        const auth = await SecureStore.getItemAsync(AUTH_KEY);
 
         if (auth === 'true') {
-          const creds = await getItemAsync(USER_CRED_KEY);
+          const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
           if (creds) {
             const parsed = JSON.parse(creds);
             const u = parsed?.u;
             if (u) {
               setUserName(u.charAt(0).toUpperCase() + u.slice(1));
-
-              const activeKey = getActiveListKey(u);
-              const storedItems = await getItemAsync(activeKey);
-              if (storedItems) setItems(JSON.parse(storedItems));
-
-              const savedKey = getSavedKey(u);
-              const storedSaved = await getItemAsync(savedKey);
-              if (storedSaved) setSavedPurchases(JSON.parse(storedSaved));
-
+              
+              const items = await storageService.getActiveList(u);
+              if (items) setItems(items);
+              
+              const saved = await storageService.getSavedPurchases(u);
+              setSavedPurchases(saved);
+              
               const qlKey = getQuickListsKey(u);
-              const storedQL = await getItemAsync(qlKey);
+              const storedQL = await SecureStore.getItemAsync(qlKey);
               if (storedQL) setQuickLists(JSON.parse(storedQL));
 
               setIsLoggedIn(true);
@@ -96,8 +95,7 @@ export const AuthAndDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       if (!isLoggedIn || !userName || !isUserContextLoaded) return;
 
       try {
-        const activeKey = getActiveListKey(userName.toLowerCase());
-        await setItemAsync(activeKey, JSON.stringify(items));
+        await storageService.saveActiveList(userName.toLowerCase(), items);
       } catch (error) {
         console.error('Erro ao salvar lista:', error);
       }
@@ -107,42 +105,22 @@ export const AuthAndDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const handleLoginSuccess = async () => {
     try {
-      await setItemAsync(AUTH_KEY, 'true');
-      const creds = await getItemAsync(USER_CRED_KEY);
+      await SecureStore.setItemAsync(AUTH_KEY, 'true');
+      const creds = await SecureStore.getItemAsync(USER_CRED_KEY);
       if (creds) {
         const parsed = JSON.parse(creds);
         const u = parsed?.u;
         if (!u) throw new Error("Usuário não encontrado nas credenciais");
-
         setUserName(u.charAt(0).toUpperCase() + u.slice(1));
 
-        // --- Migração Segura (Evitando Invalid Key) ---
-        try {
-          const oldKey = `saved_purchases_${u.toLowerCase()}`;
-          if (oldKey && !/\s/.test(oldKey)) {
-            const oldData = await getItemAsync(oldKey);
-            if (oldData) {
-              await setItemAsync(getSavedKey(u), oldData);
-              await deleteItemAsync(oldKey);
-            }
-          }
-        } catch (e) { /* Migração falhou ou chave era inválida, ignora silenciosamente */ }
+        const activeItems = await storageService.getActiveList(u);
+        if (activeItems) setItems(activeItems);
 
-        // --- Carregamento de Dados do Usuário ---
-        const activeKey = getActiveListKey(u);
-        const storedItems = await getItemAsync(activeKey);
-        if (storedItems) {
-          setItems(JSON.parse(storedItems));
-        }
-
-        const savedKey = getSavedKey(u);
-        const storedSaved = await getItemAsync(savedKey);
-        if (storedSaved) {
-          setSavedPurchases(JSON.parse(storedSaved));
-        }
+        const saved = await storageService.getSavedPurchases(u);
+        setSavedPurchases(saved);
 
         const qlKey = getQuickListsKey(u);
-        const storedQL = await getItemAsync(qlKey);
+        const storedQL = await SecureStore.getItemAsync(qlKey);
         if (storedQL) {
           setQuickLists(JSON.parse(storedQL));
         }
@@ -162,7 +140,7 @@ export const AuthAndDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   const handleLogout = async () => {
     try {
       setIsUserContextLoaded(false);
-      await deleteItemAsync(AUTH_KEY);
+      await SecureStore.deleteItemAsync(AUTH_KEY);
       setItems([]);
       setSavedPurchases([]);
       setQuickLists([]);
@@ -179,7 +157,7 @@ export const AuthAndDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       const updated = quickLists.filter(ql => ql.id !== id);
       setQuickLists(updated);
       const qlKey = getQuickListsKey(userName.toLowerCase());
-      await setItemAsync(qlKey, JSON.stringify(updated));
+      await SecureStore.setItemAsync(qlKey, JSON.stringify(updated));
     } catch (error) {
       console.error('Erro ao excluir listagem rápida:', error);
     }
@@ -188,7 +166,7 @@ export const AuthAndDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   const updateSettings = async (newSettings: UserSettings) => {
     try {
       setSettings(newSettings);
-      await setItemAsync(GLOBAL_SETTINGS_KEY, JSON.stringify(newSettings));
+      await SecureStore.setItemAsync(GLOBAL_SETTINGS_KEY, JSON.stringify(newSettings));
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
     }

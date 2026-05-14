@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams, Link } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
-import { styles } from './(tabs)/style';
+import { createStyles } from './(tabs)/style';
 import { Logo } from '../components/logo'; // Assuming this path is correct
 import { USER_CRED_KEY, getActiveListKey, formatDecimal } from './utils'; // formatDecimal agora é importado
 import { groupIcons } from '../constants'; 
@@ -15,6 +15,7 @@ import { ActionButton } from '../ActionButton';
 import { GroupSelectionModal } from '../GroupSelectionModal'; // Importar GroupSelectionModal
 import { useConfirmationLogic } from '../useConfirmationLogic';
 import { useAuthAndDataLoading } from '../useAuthAndDataLoading';
+import { useAppTheme } from '../ThemeContext';
 
 // Habilita animações de layout no Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -29,21 +30,9 @@ export default function ConfirmacaoScreen() {
   const router = useRouter();
   const { sortBy } = useLocalSearchParams<{ sortBy: 'none' | 'alphabetical' }>();
   const { settings, setItems } = useAuthAndDataLoading();
-
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const isDark = settings.theme === 'dark';
-  const theme = {
-    background: isDark ? '#1E1E1E' : '#f5f5f5',
-    surface: isDark ? '#252526' : '#fff',
-    text: isDark ? '#D4D4D4' : '#333',
-    title: isDark ? '#4CAF50' : '#1B5E20',
-    subtitle: isDark ? '#858585' : '#666',
-    inputBg: isDark ? '#3C3C3C' : '#fff',
-    inputBorder: isDark ? '#333' : '#ddd',
-    cardBorder: isDark ? '#333' : '#eee',
-    headerBg: isDark ? '#2D2D2D' : '#f1f8e9',
-    headerBorder: isDark ? '#4CAF50' : '#1B5E20',
-    modalBg: isDark ? '#1E1E1E' : '#fff',
-  };
 
   const {
     shoppingList,
@@ -105,7 +94,7 @@ export default function ConfirmacaoScreen() {
         <View style={{ marginBottom: 20 }}>
           <Logo />
         </View>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color={theme.accent} />
         <Text style={{ 
           marginTop: 15, 
           color: theme.title, 
@@ -132,7 +121,7 @@ export default function ConfirmacaoScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={styles.container}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingTop: 10 }}>
         <Logo />
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -141,10 +130,10 @@ export default function ConfirmacaoScreen() {
               onPress={() => setShowNotPurchasedModal(true)}
               style={{ position: 'relative', padding: 5, marginRight: 5 }}
             >
-              <MaterialIcons name="shopping-basket" size={32} color="#FF9800" />
+              <MaterialIcons name="shopping-basket" size={32} color={theme.orange} />
               <View style={{
                 position: 'absolute', top: 0, right: 0,
-                backgroundColor: '#F44336', borderRadius: 10,
+                backgroundColor: theme.cancelBtn, borderRadius: 10,
                 minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center',
                 paddingHorizontal: 4, borderWidth: 2, borderColor: '#fff'
               }}>
@@ -156,19 +145,15 @@ export default function ConfirmacaoScreen() {
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, marginBottom: 5 }}>
-        <Text style={[styles.title, { 
-          marginBottom: 0,
-          fontSize: 24, 
-          fontWeight: '900', 
-          color: theme.title, 
-          letterSpacing: -1
-        }]}>Itens para Compra ({totalActiveItems})</Text>
+        <Text style={[styles.title, { marginBottom: 0, fontSize: 24, letterSpacing: -1 }]}>
+          Itens para Compra ({totalActiveItems})
+        </Text>
         
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <TouchableOpacity 
             onPress={() => setIsTempAddModalVisible(true)} 
             style={{ 
-              padding: 8, 
+              padding: 8,
               backgroundColor: theme.title, 
               borderRadius: 12,
               elevation: 4,
@@ -180,8 +165,8 @@ export default function ConfirmacaoScreen() {
           >
             <MaterialIcons 
               name="add-shopping-cart" 
-              size={24} 
-              color="white" 
+              size={24}
+              color={theme.addBtnText}
             />
           </TouchableOpacity>
           <TouchableOpacity 
@@ -203,27 +188,15 @@ export default function ConfirmacaoScreen() {
         renderItem={({ item: row }) => {
           if (row.type === 'header') {
             return (
-              <TouchableOpacity onPress={() => toggleGroup(row.grupo)} style={{
-                backgroundColor: theme.headerBg,
-                paddingVertical: 4,
-                paddingHorizontal: 10,
-                marginTop: 12,
-                marginBottom: 6,
-                borderRadius: 6,
-                borderLeftWidth: 4,
-                borderLeftColor: theme.headerBorder,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8
-              }}>
+              <TouchableOpacity onPress={() => toggleGroup(row.grupo)} style={[styles.headerGroup, { marginTop: 12 }]}>
                 <MaterialIcons name={groupIcons[row.grupo]} size={18} color={theme.title} />
-                <Text style={{ fontWeight: '900', color: theme.title, textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>
+                <Text style={styles.headerGroupText}>
                   {row.grupo} ({row.count})
                 </Text>
                 <MaterialIcons
                   name={row.isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"}
                   size={24}
-                  color="#1B5E20"
+                  color={theme.title}
                   style={{ marginLeft: 'auto' }}
                 />
               </TouchableOpacity>
@@ -256,15 +229,15 @@ export default function ConfirmacaoScreen() {
                   </View>
                   <View style={{ flexDirection: 'row' }}>
                     {item.status === 'confirmed' || item.isConfirming ? (
-                      <ActionButton icon="remove" color="#F44336" onPress={() => handleCancelConfirm(item.id)} size={22} />
+                      <ActionButton icon="remove" color={theme.cancelBtn} onPress={() => handleCancelConfirm(item.id)} size={22} />
                     ) : (
                       <>
-                        <ActionButton icon="check" color="#4CAF50" onPress={() => handleConfirmItem(item.id)} size={22} />
-                        <ActionButton icon="edit" color="#2196F3" onPress={() => openEditModal(item)} size={18} />
+                        <ActionButton icon="check" color={theme.accent} onPress={() => handleConfirmItem(item.id)} size={22} />
+                        <ActionButton icon="edit" color={theme.buttonBlue} onPress={() => openEditModal(item)} size={18} />
                         {item.isTemp ? (
-                          <ActionButton icon="delete" color="#F44336" onPress={() => handleDeleteTempItem(item.id)} size={18} />
+                          <ActionButton icon="delete" color={theme.cancelBtn} onPress={() => handleDeleteTempItem(item.id)} size={18} />
                         ) : (
-                          <ActionButton icon="warning" color="#FF9800" onPress={() => handleMoveToNotPurchased(item)} size={18} />
+                          <ActionButton icon="warning" color={theme.orange} onPress={() => handleMoveToNotPurchased(item)} size={18} />
                         )}
                       </>
                     )}
@@ -279,10 +252,10 @@ export default function ConfirmacaoScreen() {
 
       {/* Botões de Ação */}
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 20, paddingBottom: 20 }}>
-        <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: '#F44336' }]} onPress={handleCancelShopping}>
+        <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: theme.cancelBtn }]} onPress={handleCancelShopping}>
           <Text style={styles.addBtnText}>Cancelar</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50' }]} onPress={handleFinishShopping}>
+        <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: theme.accent }]} onPress={handleFinishShopping}>
           <Text style={styles.addBtnText}>Finalizar Compras</Text>
         </TouchableOpacity>
       </View>
@@ -291,7 +264,7 @@ export default function ConfirmacaoScreen() {
       <Modal visible={isTempAddModalVisible} transparent animationType="slide">
         <View style={localStyles.modalOverlay}>
           <View style={[localStyles.modalContent, { width: '85%', backgroundColor: theme.modalBg }]}>
-            <Text style={[styles.title, { fontSize: 22, color: theme.title, marginBottom: 10 }]}>Adicionar Item Extra</Text>
+            <Text style={[styles.title, { fontSize: 22, marginBottom: 10 }]}>Adicionar Item Extra</Text>
             <Text style={{ fontSize: 12, color: theme.subtitle, marginBottom: 15, textAlign: 'center' }}>
               Este item é temporário e não afeta sua lista original.
             </Text>
@@ -336,7 +309,7 @@ export default function ConfirmacaoScreen() {
             />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 15, width: '100%' }}>
               <TouchableOpacity 
-                style={[styles.addBtn, { flex: 1, backgroundColor: '#F44336' }]} 
+                style={[styles.addBtn, { flex: 1, backgroundColor: theme.cancelBtn }]} 
                 onPress={() => {
                   setIsTempAddModalVisible(false);
                   setTempInput('');
@@ -346,7 +319,7 @@ export default function ConfirmacaoScreen() {
                 <Text style={styles.addBtnText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50' }]} 
+                style={[styles.addBtn, { flex: 1, backgroundColor: theme.accent }]} 
                 onPress={handleAddNewTempItem}
               >
                 <Text style={styles.addBtnText}>Adicionar</Text>
@@ -362,7 +335,6 @@ export default function ConfirmacaoScreen() {
             <Text style={[styles.title, { 
               fontSize: 24, 
               fontWeight: '900', 
-              color: theme.title, 
               letterSpacing: -1
             }]}>Editar Quantidade</Text>
             <Text style={{ marginBottom: 10, color: theme.text }}>{editingItem?.name}</Text>
@@ -375,13 +347,13 @@ export default function ConfirmacaoScreen() {
             />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
               <TouchableOpacity 
-                style={[styles.addBtn, { flex: 1, backgroundColor: '#F44336' }]} 
+                style={[styles.addBtn, { flex: 1, backgroundColor: theme.cancelBtn }]} 
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={styles.addBtnText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.addBtn, { flex: 1 }]} 
+                style={[styles.addBtn, { flex: 1, backgroundColor: theme.accent }]} 
                 onPress={saveEdit}
               >
                 <Text style={styles.addBtnText}>Salvar</Text>
@@ -394,7 +366,7 @@ export default function ConfirmacaoScreen() {
       <Modal visible={isSaveModalVisible} transparent animationType="slide">
         <View style={localStyles.modalOverlay}>
           <View style={[localStyles.modalContent, { backgroundColor: theme.modalBg }]}>
-            <Text style={[styles.title, { fontSize: 22, color: theme.title }]}>Salvar Itens Comprados</Text>
+            <Text style={[styles.title, { fontSize: 22 }]}>Salvar Itens Comprados</Text>
             <Text style={{ marginBottom: 15, textAlign: 'center', color: theme.subtitle }}>
               Dê um nome para salvar apenas os itens que você marcou como comprados nesta lista.
             </Text>
@@ -408,13 +380,13 @@ export default function ConfirmacaoScreen() {
             />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
               <TouchableOpacity 
-                style={[styles.addBtn, { flex: 1, backgroundColor: '#2196F3' }]} 
+                style={[styles.addBtn, { flex: 1, backgroundColor: theme.buttonBlue }]} 
                 onPress={() => { setIsSaveModalVisible(false); setShowSummaryModal(true); }}
               >
                 <Text style={styles.addBtnText}>Voltar</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50' }]} 
+                style={[styles.addBtn, { flex: 1, backgroundColor: theme.accent }]} 
                 onPress={handleSavePurchase}
               >
                 <Text style={styles.addBtnText}>Gravar</Text>

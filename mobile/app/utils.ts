@@ -27,3 +27,7 @@ export const formatDecimal = (val: string) => {
   const num = parseFloat(val.replace(',', '.'));
   return isNaN(num) ? '0.00' : num.toFixed(2);
 };
+
+export const normalizeString = (str: string) => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+};

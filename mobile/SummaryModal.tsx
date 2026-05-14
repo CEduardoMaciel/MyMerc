@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { styles } from './app/(tabs)/style';
+import { createStyles } from './app/(tabs)/style';
 import { SummaryData } from './useConfirmationLogic';
 import { formatDecimal } from './app/utils';
 import { Item } from './constants';
-import { useAuthAndDataLoading } from './useAuthAndDataLoading';
+import { useAppTheme } from './ThemeContext';
 
 interface SummaryModalProps {
   visible: boolean;
@@ -24,28 +24,16 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
 }) => {
   if (!summary) return null;
   const [viewingList, setViewingList] = useState<{ title: string; items: Item[] } | null>(null);
-
-  const { settings } = useAuthAndDataLoading();
-  const isDark = settings.theme === 'dark';
-  const theme = {
-    background: isDark ? '#1E1E1E' : '#fff',
-    text: isDark ? '#D4D4D4' : '#333',
-    title: isDark ? '#4CAF50' : '#1B5E20',
-    card: isDark ? '#2D2D2D' : '#FFF3E0',
-    cardBorder: isDark ? '#333' : '#FFE0B2',
-    secondaryText: isDark ? '#B0BEC5' : '#666',
-    buttonBlue: '#2196F3',
-    buttonRed: '#F44336',
-  };
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={localStyles.modalOverlay}>
-        <View style={[localStyles.modalContent, { backgroundColor: theme.background, maxHeight: '80%' }]}>
+        <View style={[localStyles.modalContent, { backgroundColor: theme.modalBg, maxHeight: '80%' }]}>
           <Text style={[styles.title, {
             fontSize: 24,
             fontWeight: '900',
-            color: theme.title,
             letterSpacing: -1
           }]}>
             {viewingList ? viewingList.title : "Resumo das Compras"}
@@ -62,19 +50,19 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: theme.text, fontSize: 16 }}>{item.name}</Text>
                     </View>
-                    <Text style={{ color: theme.secondaryText, fontSize: 14, fontWeight: 'bold' }}>
+                    <Text style={{ color: theme.subtitle, fontSize: 14, fontWeight: 'bold' }}>
                       Qtd: {formatDecimal(item.quantidade)}
                     </Text>
                   </View>
                 )}
                 ListEmptyComponent={
-                  <Text style={{ textAlign: 'center', color: theme.secondaryText, marginVertical: 20 }}>
+                  <Text style={{ textAlign: 'center', color: theme.subtitle, marginVertical: 20 }}>
                     Nenhum item nesta lista.
                   </Text>
                 }
               />
               <TouchableOpacity 
-                style={[localStyles.actionButton, { backgroundColor: theme.buttonBlue }]} 
+                style={[localStyles.actionButton, { backgroundColor: '#2196F3' }]} 
                 onPress={() => setViewingList(null)}
               >
                 <MaterialIcons name="arrow-back" size={24} color="white" />
@@ -90,7 +78,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
                 <Text style={[localStyles.statValue, { color: theme.text }]}>{summary.totalItems}</Text>
                 <TouchableOpacity
                   onPress={() => setViewingList({ title: 'Total de Itens', items: summary.allItemsList })}
-                  style={[localStyles.iconButton, { backgroundColor: '#2196F3' }]}
+                  style={[localStyles.iconButton, { backgroundColor: theme.buttonBlue }]}
                 >
                   <MaterialIcons name="visibility" size={16} color="white" />
                 </TouchableOpacity>
@@ -102,7 +90,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
                 <Text style={[localStyles.statValue, { color: '#4CAF50' }]}>{summary.confirmedItems}</Text>
                 <TouchableOpacity
                   onPress={() => setViewingList({ title: 'Itens Comprados', items: summary.confirmedItemsList })}
-                  style={[localStyles.iconButton, { backgroundColor: '#4CAF50' }]}
+                  style={[localStyles.iconButton, { backgroundColor: theme.accent }]}
                 >
                   <MaterialIcons name="visibility" size={16} color="white" />
                 </TouchableOpacity>
@@ -114,7 +102,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
                 <Text style={[localStyles.statValue, { color: '#FF9800' }]}>{summary.notPurchasedItemsCount}</Text>
                 {summary.notPurchasedItemsCount > 0 && (
                   <TouchableOpacity
-                    onPress={async () => {
+                    onPress={async () => { // @ts-ignore
                       const success = await onSaveQuickList();
                       if (success) onGoHome();
                     }}
@@ -135,7 +123,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
                 <Text style={[localStyles.statValue, { color: theme.secondaryText }]}>{summary.remainingItems}</Text>
                 <TouchableOpacity
                   onPress={() => setViewingList({ title: 'Itens Restantes', items: summary.remainingItemsList })}
-                  style={[localStyles.iconButton, { backgroundColor: '#9E9E9E' }]}
+                  style={[localStyles.iconButton, { backgroundColor: theme.subtitle }]} // Using subtitle for a gray tone
                 >
                   <MaterialIcons name="visibility" size={16} color="white" />
                 </TouchableOpacity>
@@ -144,7 +132,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
           </View>
 
           <View style={{ width: '100%', gap: 12, marginTop: 10 }}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[localStyles.actionButton, { backgroundColor: theme.buttonBlue }]} 
               onPress={onGoHome}
             >

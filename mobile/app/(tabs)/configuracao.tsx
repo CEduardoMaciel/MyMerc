@@ -4,21 +4,16 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthAndDataLoading } from '../../useAuthAndDataLoading';
 import { Logo } from '@/components/logo';
+import { useAppTheme } from '../../ThemeContext';
+import { createStyles as createGlobalStyles } from './style'; // Renomeado para evitar conflito
 
 export default function ConfiguracaoScreen() {
   const router = useRouter();
   const { settings, updateSettings, userName } = useAuthAndDataLoading();
 
+  const theme = useAppTheme();
+  const globalStyles = createGlobalStyles(theme); // Usando o novo nome
   const isDark = settings.theme === 'dark';
-  
-  const theme = {
-    background: isDark ? '#1E1E1E' : '#fff',
-    text: isDark ? '#D4D4D4' : '#333',
-    card: isDark ? '#252526' : '#f9f9f9',
-    border: isDark ? '#333' : '#eee',
-    accent: '#4CAF50',
-    secondaryText: isDark ? '#B0BEC5' : '#666',
-  };
 
   const toggleTheme = () => {
     updateSettings({
@@ -36,22 +31,22 @@ export default function ConfiguracaoScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[localStyles.container, { backgroundColor: theme.background }]}>
       <View style={{ alignSelf: 'flex-start', marginBottom: 20, marginLeft: -10 }}>
         <Logo />
       </View>
       
-      <Text style={[styles.title, { color: theme.accent }]}>Configurações Gerais</Text>
-      <Text style={[styles.subtitle, { color: theme.secondaryText, marginBottom: 30 }]}>
+      <Text style={[localStyles.title, { color: theme.accent }]}>Configurações Gerais</Text>
+      <Text style={[localStyles.subtitle, { color: theme.subtitle, marginBottom: 30 }]}>
         Personalize sua experiência no MyMerc
       </Text>
 
       <ScrollView style={{ flex: 1 }}>
-        <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <View style={styles.row}>
+        <View style={[localStyles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={localStyles.row}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.label, { color: theme.text }]}>Tema Escuro</Text>
-              <Text style={[styles.description, { color: theme.secondaryText }]}>
+              <Text style={[localStyles.label, { color: theme.text }]}>Tema Escuro</Text>
+              <Text style={[localStyles.description, { color: theme.subtitle }]}>
                 Ativa o modo noturno para ambientes escuros
               </Text>
             </View>
@@ -64,14 +59,14 @@ export default function ConfiguracaoScreen() {
           </View>
         </View>
 
-        <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.label, { color: theme.text }]}>Expiração de Listagens Rápidas</Text>
-          <Text style={[styles.description, { color: theme.secondaryText, marginBottom: 15 }]}>
+        <View style={[localStyles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[localStyles.label, { color: theme.text }]}>Expiração de Listagens Rápidas</Text>
+          <Text style={[localStyles.description, { color: theme.subtitle, marginBottom: 15 }]}>
             Quantidade de dias até uma listagem rápida ser marcada como expirada.
           </Text>
-          <View style={styles.inputRow}>
+          <View style={localStyles.inputRow}>
             <TextInput
-              style={[styles.input, { backgroundColor: isDark ? '#3C3C3C' : '#fff', color: theme.text, borderColor: theme.border }]}
+              style={[localStyles.input, { backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }]}
               keyboardType="numeric"
               value={settings.expirationDays.toString()}
               onChangeText={updateExpiration}
@@ -82,24 +77,24 @@ export default function ConfiguracaoScreen() {
         </View>
 
         <View style={{ padding: 20, alignItems: 'center' }}>
-          <MaterialIcons name="info-outline" size={24} color={theme.secondaryText} />
-          <Text style={{ color: theme.secondaryText, textAlign: 'center', marginTop: 10, fontSize: 12 }}>
+          <MaterialIcons name="info-outline" size={24} color={theme.subtitle} />
+          <Text style={{ color: theme.subtitle, textAlign: 'center', marginTop: 10, fontSize: 12 }}>
             As configurações são aplicadas globalmente para todos os perfis.
           </Text>
         </View>
       </ScrollView>
 
       <TouchableOpacity 
-        style={[styles.confirmBtn, { backgroundColor: theme.accent }]} 
+        style={[localStyles.confirmBtn, { backgroundColor: theme.accent }]} 
         onPress={() => router.back()}
       >
-        <Text style={styles.confirmBtnText}>Confirmar</Text>
+        <Text style={localStyles.confirmBtnText}>Confirmar</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const localStyles = StyleSheet.create({
   container: { flex: 1, padding: 20, paddingTop: 60 },
   title: { fontSize: 24, fontWeight: '900', marginBottom: 5 },
   subtitle: { fontSize: 16 },

@@ -1,26 +1,20 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useAuthAndDataLoading } from '../useAuthAndDataLoading';
+import { useAppTheme } from '../ThemeContext';
 
 export function Logo() {
-  const { settings } = useAuthAndDataLoading();
-  const isDark = settings.theme === 'dark';
-
-  const theme = {
-    text: isDark ? '#A5D6A7' : '#1B5E20',
-    icon: isDark ? '#4CAF50' : '#4CAF50'
-  };
+  const theme = useAppTheme();
 
   return (
     <View style={styles.container}>
       <MaterialIcons 
         name="shopping-cart" 
         size={45} 
-        color={theme.icon} 
+        color={theme.accent} 
         style={styles.icon} 
       />
-      <Text style={[styles.text, { color: theme.text }]}>MyMerc</Text>
+      <Text style={[styles.text, { color: theme.logo }]}>MyMerc</Text>
     </View>
   );
 }

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { styles } from './app/(tabs)/style';
+import { createStyles } from './app/(tabs)/style';
 import { Item } from './constants'; // Importa a interface Item centralizada
-import { useAuthAndDataLoading } from './useAuthAndDataLoading';
+import { useAppTheme } from './ThemeContext';
 
 interface ItemEditModalProps {
   visible: boolean;
@@ -21,30 +21,22 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   onSave,
   onCancel,
 }) => {
-  const { settings } = useAuthAndDataLoading();
-  const isDark = settings.theme === 'dark';
-  const theme = {
-    background: isDark ? '#1E1E1E' : '#fff',
-    text: isDark ? '#D4D4D4' : '#333',
-    title: isDark ? '#4CAF50' : '#1B5E20',
-    inputBg: isDark ? '#3C3C3C' : '#fff',
-    inputBorder: isDark ? '#333' : '#ddd',
-    cancelBtn: '#F44336',
-  };
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  const isDark = theme.background !== '#fff';
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={localStyles.modalOverlay}>
-        <View style={[localStyles.modalContent, { backgroundColor: theme.background }]}>
+        <View style={[localStyles.modalContent, { backgroundColor: theme.modalBg }]}>
           <Text style={[styles.title, {
             fontSize: 24,
             fontWeight: '900',
-            color: theme.title,
             letterSpacing: -1
           }]}>Editar Item</Text>
           <Text style={{ marginBottom: 15, fontSize: 16, color: theme.text }}>{editingItem?.name}</Text>
           <TextInput
-            style={[styles.input, { width: '100%', backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
+            style={[styles.input, { width: '100%' }]}
             value={editQuantity}
             onChangeText={setEditQuantity}
             placeholder="Nova quantidade"
@@ -60,7 +52,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
               <Text style={styles.addBtnText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.addBtn, { flex: 1, backgroundColor: theme.title }]}
+              style={[styles.addBtn, { flex: 1, backgroundColor: theme.accent }]}
               onPress={onSave}
             >
               <Text style={styles.addBtnText}>Salvar</Text>
