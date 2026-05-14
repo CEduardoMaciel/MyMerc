@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons'; // Assuming this path is cor
 import { styles } from './app/(tabs)/style';
 import { formatDecimal } from './app/utils';
 import { Item as BaseItem } from './constants'; // Importa a interface Item centralizada
+import { useAuthAndDataLoading } from './useAuthAndDataLoading';
 
 interface Item extends BaseItem { // Estende a interface Item para adicionar 'status'
   status: 'pending' | 'confirmed' | 'not_purchased';
@@ -22,14 +23,25 @@ export const NotPurchasedModal: React.FC<NotPurchasedModalProps> = ({
   onClose,
   onRestore,
 }) => {
+  const { settings } = useAuthAndDataLoading();
+  const isDark = settings.theme === 'dark';
+  const theme = {
+    modalBg: isDark ? '#1E1E1E' : '#fff',
+    text: isDark ? '#D4D4D4' : '#333',
+    title: isDark ? '#4CAF50' : '#1B5E20',
+    subtitle: isDark ? '#858585' : '#666',
+    cardBg: isDark ? '#2D2D2D' : '#FFF3E0',
+    cardBorder: isDark ? '#333' : '#FFE0B2',
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={localStyles.modalOverlay}>
-        <View style={[localStyles.modalContent, { height: '65%', width: '90%' }]}>
+        <View style={[localStyles.modalContent, { height: '65%', width: '90%', backgroundColor: theme.modalBg }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 20, alignItems: 'center' }}>
-            <Text style={{ fontSize: 22, fontWeight: '900', color: '#1B5E20' }}>Não Comprados</Text>
+            <Text style={{ fontSize: 22, fontWeight: '900', color: theme.title }}>Não Comprados</Text>
             <TouchableOpacity onPress={onClose} style={{ padding: 5 }}>
-              <MaterialIcons name="close" size={28} color="#666" />
+              <MaterialIcons name="close" size={28} color={theme.subtitle} />
             </TouchableOpacity>
           </View>
 
@@ -38,11 +50,11 @@ export const NotPurchasedModal: React.FC<NotPurchasedModalProps> = ({
             keyExtractor={(item) => item.id}
             style={{ width: '100%' }}
             renderItem={({ item }) => (
-              <View style={[styles.itemContainer, { marginBottom: 10, opacity: 0.9, backgroundColor: '#FFF3E0', borderColor: '#FFE0B2' }]}>
+              <View style={[styles.itemContainer, { marginBottom: 10, opacity: 0.9, backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                 <View style={styles.itemContent}>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.itemText, { color: '#E65100' }]}>{item.name}</Text>
-                    <Text style={{ fontSize: 12, color: '#666' }}>Qtd: {formatDecimal(item.quantidade)}</Text>
+                    <Text style={[styles.itemText, { color: theme.text }]}>{item.name}</Text>
+                    <Text style={{ fontSize: 12, color: theme.subtitle }}>Qtd: {formatDecimal(item.quantidade)}</Text>
                   </View>
                   <TouchableOpacity
                     onPress={() => onRestore(item)}
@@ -53,7 +65,7 @@ export const NotPurchasedModal: React.FC<NotPurchasedModalProps> = ({
                 </View>
               </View>
             )}
-            ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20, color: '#999' }}>Nenhum item nesta lista.</Text>}
+            ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20, color: theme.subtitle }}>Nenhum item nesta lista.</Text>}
           />
         </View>
       </View>

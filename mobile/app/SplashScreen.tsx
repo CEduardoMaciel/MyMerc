@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing, Dimensions, TextInput, Alert, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
+import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { AUTH_KEY, USER_CRED_KEY, PROFILES_KEY, getActiveListKey, getSavedKey } from './utils'; // Importar constantes de utils
+import { useAuthAndDataLoading } from '../useAuthAndDataLoading';
 
 const { width, height } = Dimensions.get('window');
 
 export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
+  const router = useRouter();
   const cartScale = useRef(new Animated.Value(0.1)).current;
   const cartMove = useRef(new Animated.Value(-200)).current;
   const cartShake = useRef(new Animated.Value(0)).current;
@@ -34,6 +37,19 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const [username, setUsername] = useState('');
   const [profiles, setProfiles] = useState<string[]>([]);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+  const { settings } = useAuthAndDataLoading();
+
+  const isDark = settings.theme === 'dark';
+  const theme = {
+    background: isDark ? '#1E1E1E' : '#fff',
+    text: isDark ? '#D4D4D4' : '#333',
+    logo: isDark ? '#A5D6A7' : '#1B5E20',
+    inputBg: isDark ? '#3C3C3C' : '#f9f9f9',
+    inputBorder: isDark ? '#333' : '#eee',
+    card: isDark ? '#252526' : '#f9f9f9',
+    secondaryText: isDark ? '#B0BEC5' : '#666',
+    road: isDark ? '#333' : '#eee',
+  };
 
   const loadProfiles = useCallback(async () => {
     try {
@@ -229,17 +245,24 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
     );
   };
 
+  const handleOpenProfileSettings = async (item: string) => {
+    await SecureStore.setItemAsync(USER_CRED_KEY, JSON.stringify({ u: item }));
+    await SecureStore.setItemAsync(AUTH_KEY, 'true');
+    onFinish();
+    router.push('/configuracao');
+  };
+
   const renderProfileItem = ({ item }: { item: string }) => (
     <View style={localStyles.profileItemContainer}>
       <TouchableOpacity 
-        style={localStyles.profileCard} 
+        style={[localStyles.profileCard, { backgroundColor: theme.card, borderColor: theme.inputBorder }]} 
         onPress={() => handleSelectProfile(item)}
       >
-        <View style={localStyles.profileIcon}>
-          <MaterialIcons name="person" size={24} color="#4CAF50" />
+        <View style={[localStyles.profileIcon, { backgroundColor: isDark ? '#2D2D2D' : '#E8F5E9' }]}>
+          <MaterialIcons name="person" size={24} color={theme.logo} />
         </View>
-        <Text style={localStyles.profileName}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
-        <MaterialIcons name="chevron-right" size={24} color="#ccc" />
+        <Text style={[localStyles.profileName, { color: theme.text }]}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
+        <MaterialIcons name="chevron-right" size={24} color={isDark ? '#555' : '#ccc'} />
       </TouchableOpacity>
       
       <TouchableOpacity 
@@ -256,10 +279,17 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
       style={{ flex: 1 }} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={localStyles.container}>
+      <View style={[localStyles.container, { backgroundColor: theme.background }]}>
+        <TouchableOpacity 
+          onPress={() => router.push('/configuracao')}
+          style={{ position: 'absolute', top: 50, right: 20, zIndex: 100 }}
+        >
+          <MaterialIcons name="settings" size={32} color={theme.logo} />
+        </TouchableOpacity>
+
         <Animated.View style={[localStyles.roadContainer, { opacity: roadOpacity }]}>
-          <View style={localStyles.roadLineLeft} />
-          <View style={localStyles.roadLineRight} />
+          <View style={[localStyles.roadLineLeft, { backgroundColor: theme.road }]} />
+          <View style={[localStyles.roadLineRight, { backgroundColor: theme.road }]} />
         </Animated.View>
 
         <Animated.View style={[localStyles.contentGroup, { transform: [{ translateY: logoTranslateY }] }]}>
@@ -305,9 +335,9 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
               activeOpacity={1} 
               onLongPress={() => handleSelectProfile('Admin')}
             >
-              <Text style={localStyles.logoText}>MyMerc</Text>
+              <Text style={[localStyles.logoText, { color: theme.logo }]}>MyMerc</Text>
             </TouchableOpacity>
-            <Text style={localStyles.tagline}>Suas compras em ordem</Text>
+            <Text style={[localStyles.tagline, { color: theme.secondaryText }]}>Suas compras em ordem</Text>
           </Animated.View>
         </Animated.View>
 
@@ -331,13 +361,13 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
         }}>
           {isCreatingProfile ? (
             <View>
-              <Text style={localStyles.sectionTitle}>Novo Perfil</Text>
+              <Text style={[localStyles.sectionTitle, { color: theme.logo }]}>Novo Perfil</Text>
               <TextInput
                 ref={userInputRef}
-                style={localStyles.input}
+                style={[localStyles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
                 placeholder="Nome do Perfil"
                 value={username}
-                placeholderTextColor="#999"
+                placeholderTextColor={isDark ? '#888' : '#999'}
                 onChangeText={setUsername}
                 autoFocus
               />
@@ -345,12 +375,12 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
                 <Text style={localStyles.enterBtnText}>Criar Perfil</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setIsCreatingProfile(false)} style={{ marginTop: 15, alignItems: 'center' }}>
-                <Text style={{ color: '#666' }}>Voltar</Text>
+                <Text style={{ color: theme.secondaryText }}>Voltar</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={{ flex: 1 }}>
-              <Text style={localStyles.sectionTitle}>Escolha seu Perfil</Text>
+              <Text style={[localStyles.sectionTitle, { color: theme.logo }]}>Escolha seu Perfil</Text>
               <FlatList
                 data={profiles.filter(p => p.toLowerCase() !== 'admin')}
                 renderItem={renderProfileItem}
@@ -414,10 +444,7 @@ const localStyles = StyleSheet.create({
     fontSize: 48,
     fontWeight: '900',
     color: '#1B5E20', // Um verde mais escuro para destacar sobre o carrinho
-    letterSpacing: -1,
-    textShadowColor: 'rgba(255, 255, 255, 0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10
+    letterSpacing: -1
   },
   tagline: {
     fontSize: 16,

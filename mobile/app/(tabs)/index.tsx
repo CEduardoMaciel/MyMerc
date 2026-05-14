@@ -30,7 +30,7 @@ export default function HomeScreen() {
     isLoggedIn, isAuthLoading, userName, isUserContextLoaded,
     handleLoginSuccess, handleLogout, items, setItems,
     savedPurchases, setSavedPurchases,
-    quickLists, handleDeleteQuickList
+    quickLists, handleDeleteQuickList, settings
   } = useAuthAndDataLoading();
 
   const {
@@ -55,6 +55,22 @@ export default function HomeScreen() {
     setSavedPurchases, 
     userName 
   });
+
+  // Temas e Cores Dinâmicos baseados no perfil
+  const isDark = settings.theme === 'dark';
+  const theme = {
+    background: isDark ? '#1E1E1E' : '#fff',
+    surface: isDark ? '#252526' : '#fff',
+    text: isDark ? '#D4D4D4' : '#333',
+    title: isDark ? '#4CAF50' : '#1B5E20',
+    subtitle: isDark ? '#858585' : '#666',
+    inputBg: isDark ? '#3C3C3C' : '#f9f9f9',
+    inputBorder: isDark ? '#333' : '#eee',
+    cardBorder: isDark ? '#333' : '#eee',
+    headerBg: isDark ? '#2D2D2D' : '#f1f8e9',
+    headerBorder: isDark ? '#4CAF50' : '#1B5E20',
+    modalBg: isDark ? '#1E1E1E' : '#fff',
+  };
 
   // Handler modificado para ser chamado pelo SplashScreen
   const handleLoginSuccessAndPromptCheck = async () => {
@@ -108,22 +124,34 @@ export default function HomeScreen() {
     return <SplashScreen onFinish={handleLoginSuccessAndPromptCheck} />; // Usa o novo handler
   }
 
+  const getExpirationInfo = (ql: any) => {
+    if (!ql.timestamp) return null;
+    const daysElapsed = Math.floor((Date.now() - ql.timestamp) / (1000 * 60 * 60 * 24));
+    const daysRemaining = settings.expirationDays - daysElapsed;
+    return {
+      daysRemaining,
+      isExpired: daysRemaining <= 0,
+      text: daysRemaining <= 0 ? 'Expirada' : `Expira em ${daysRemaining}d`
+    };
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={{ alignSelf: 'flex-start', marginBottom: 10, marginLeft: -10 }}>
         <Logo />
       </View>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-        <Text style={{ fontSize: 20, fontWeight: '900', color: '#1B5E20' }}>
+        <Text style={{ fontSize: 20, fontWeight: '900', color: theme.title }}>
           Perfil {userName}
         </Text>
+
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <TouchableOpacity 
             onPress={() => setIsSavedListsModalVisible(true)}
-            style={{ padding: 8, backgroundColor: '#E8F5E9', borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            style={{ padding: 8, backgroundColor: theme.headerBg, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4 }}
           >
-            <MaterialIcons name="list-alt" size={24} color="#2E7D32" />
+            <MaterialIcons name="list-alt" size={24} color={theme.title} />
             {savedPurchases.length > 0 && (
               <View style={{ backgroundColor: '#F44336', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 }}>
                 <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{savedPurchases.length}</Text>
@@ -133,7 +161,7 @@ export default function HomeScreen() {
           {quickLists.length > 0 && (
             <TouchableOpacity 
               onPress={() => setIsQuickListsModalVisible(true)}
-              style={{ padding: 8, backgroundColor: '#FFF3E0', borderRadius: 12 }}
+              style={{ padding: 8, backgroundColor: theme.headerBg, borderRadius: 12 }}
             >
               <MaterialIcons name="flash-on" size={24} color="#EF6C00" />
               <View style={{ position: 'absolute', top: -5, right: -5, backgroundColor: '#F44336', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
@@ -145,13 +173,14 @@ export default function HomeScreen() {
       </View>
 
       <View style={{ marginBottom: 20 }}>
-        <Text style={{ color: '#666', marginBottom: 8 }}>O que vamos comprar hoje?</Text>
+        <Text style={{ color: theme.subtitle, marginBottom: 8 }}>O que vamos comprar hoje?</Text>
       <View style={{ zIndex: 10 }}>
         <TextInput
           ref={inputRef}
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
           placeholder="Nome do item"
           value={input}
+          placeholderTextColor={isDark ? '#858585' : '#999'}
           onChangeText={(value) => {
             setInput(value);
             setShowSuggestions(true);
@@ -159,17 +188,17 @@ export default function HomeScreen() {
           onFocus={() => setShowSuggestions(true)}
         />
         {showSuggestions && filteredSuggestions.length > 0 && (
-          <View style={[styles.suggestionBox, { position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', zIndex: 11, elevation: 5 }]}>
+          <View style={[styles.suggestionBox, { position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: theme.surface, borderColor: theme.inputBorder, zIndex: 11, elevation: 5 }]}>
             {filteredSuggestions.map(({ item }) => (
               <TouchableOpacity
                 key={item}
-                style={styles.suggestionItem}
+                style={[styles.suggestionItem, { borderBottomColor: theme.cardBorder }]}
                 onPress={() => {
                   setInput(item);
                   setShowSuggestions(false);
                   quantidadeInputRef.current?.focus(); // Foca na quantidade após selecionar a sugestão
                 }}>
-                <Text>{item}</Text>
+                <Text style={{ color: theme.text }}>{item}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -179,9 +208,10 @@ export default function HomeScreen() {
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
           <TextInput
             ref={quantidadeInputRef}
-            style={[styles.quantidadeText, { width: 110 }]}
+            style={[styles.quantidadeText, { width: 110, backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
             placeholder="Quantidade"
             value={quantidade}
+            placeholderTextColor={isDark ? '#858585' : '#999'}
             onChangeText={setQuantidade}
             onFocus={() => setShowSuggestions(false)} // Esconde sugestões ao focar na quantidade
             keyboardType="numeric"
@@ -197,11 +227,8 @@ export default function HomeScreen() {
           marginBottom: 0,
           fontSize: 24, 
           fontWeight: '900', 
-          color: '#1B5E20', 
-          letterSpacing: -1,
-          textShadowColor: 'rgba(255, 255, 255, 0.8)',
-          textShadowOffset: { width: 0, height: 0 },
-          textShadowRadius: 10 
+          color: theme.title, 
+          letterSpacing: -1
         }]}>Sua lista ({totalItems})</Text>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <TouchableOpacity 
@@ -211,7 +238,7 @@ export default function HomeScreen() {
             <MaterialIcons 
               name="sort" 
               size={28} 
-              color={sortBy === 'alphabetical' ? '#4CAF50' : '#333'} 
+              color={sortBy === 'alphabetical' ? '#4CAF50' : theme.text} 
             />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleDeleteAll} style={{ padding: 5 }}>
@@ -227,26 +254,26 @@ export default function HomeScreen() {
           if (row.type === 'header') {
             return (
               <TouchableOpacity onPress={() => toggleGroup(row.grupo)} style={{
-                backgroundColor: '#f1f8e9',
+                backgroundColor: theme.headerBg,
                 paddingVertical: 6,
                 paddingHorizontal: 12,
                 marginTop: 15,
                 marginBottom: 8,
                 borderRadius: 6,
                 borderLeftWidth: 5,
-                borderLeftColor: '#1B5E20',
+                borderLeftColor: theme.headerBorder,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 8
               }}>
-                <MaterialIcons name={groupIcons[row.grupo]} size={18} color="#1B5E20" />
-                <Text style={{ fontWeight: '900', color: '#1B5E20', textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>
+                <MaterialIcons name={groupIcons[row.grupo]} size={18} color={theme.title} />
+                <Text style={{ fontWeight: '900', color: theme.title, textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>
                   {row.grupo} ({row.count})
                 </Text>
                 <MaterialIcons
                   name={row.isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"}
                   size={24}
-                  color="#1B5E20"
+                  color={theme.title}
                   style={{ marginLeft: 'auto' }}
                 />
               </TouchableOpacity>
@@ -254,12 +281,12 @@ export default function HomeScreen() {
           } else {
             const item = row.item;
             return (
-              <View style={styles.itemContainer}>
+              <View style={[styles.itemContainer, { backgroundColor: theme.surface, borderColor: theme.cardBorder }]}>
                 <View style={styles.itemContent}>
                   <View>
-                    <Text style={styles.itemText}>{item.name}</Text>
+                    <Text style={[styles.itemText, { color: theme.text }]}>{item.name}</Text>
                     <View style={{ marginTop: 4 }}>
-                      <Text style={[styles.itemText, { fontSize: 14, color: '#666', fontWeight: 'bold' }]}>Qtd: {formatDecimal(item.quantidade)}</Text>
+                      <Text style={[styles.itemText, { fontSize: 14, color: theme.subtitle, fontWeight: 'bold' }]}>Qtd: {formatDecimal(item.quantidade)}</Text>
                     </View>
                   </View>
                 </View>
@@ -275,7 +302,7 @@ export default function HomeScreen() {
             );
           }
         }}
-        ListEmptyComponent={<Text>Nenhum item salvo.</Text>}
+        ListEmptyComponent={<Text style={{ color: theme.subtitle }}>Nenhum item salvo.</Text>}
         style={styles.list}
       />
 
@@ -344,18 +371,27 @@ export default function HomeScreen() {
 
       <Modal visible={isQuickListsModalVisible} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 20, width: '90%', maxHeight: '80%' }}>
+          <View style={{ backgroundColor: theme.modalBg, padding: 20, borderRadius: 20, width: '90%', maxHeight: '80%' }}>
             <Text style={[styles.title, { color: '#EF6C00', fontSize: 22 }]}>Listagens Rápidas</Text>
-            <Text style={{ marginBottom: 15, color: '#666' }}>Itens não comprados em sessões anteriores.</Text>
+            <Text style={{ marginBottom: 15, color: theme.subtitle }}>Itens não comprados em sessões anteriores.</Text>
             
             <FlatList
               data={quickLists}
               keyExtractor={item => item.id}
-              renderItem={({ item }) => (
-                <View style={{ padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              renderItem={({ item }) => {
+                const exp = getExpirationInfo(item);
+                return (
+                <View style={{ padding: 15, borderBottomWidth: 1, borderBottomColor: theme.cardBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{item.date}</Text>
-                    <Text style={{ color: '#666', fontSize: 12 }}>{item.items.length} produtos pendentes</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.text }}>{item.date}</Text>
+                      {exp && (
+                        <View style={{ backgroundColor: exp.isExpired ? '#FFCDD2' : '#E3F2FD', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                          <Text style={{ fontSize: 10, color: exp.isExpired ? '#C62828' : '#1976D2', fontWeight: 'bold' }}>{exp.text}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={{ color: theme.subtitle, fontSize: 12 }}>{item.items.length} produtos pendentes</Text>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity onPress={() => setPreviewQuickList(item)}>
@@ -395,8 +431,9 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              )}
-              ListEmptyComponent={<Text style={{ textAlign: 'center', padding: 20 }}>Nenhuma listagem rápida disponível.</Text>}
+                );
+              }}
+              ListEmptyComponent={<Text style={{ textAlign: 'center', padding: 20, color: theme.subtitle }}>Nenhuma listagem rápida disponível.</Text>}
             />
             
             <TouchableOpacity 

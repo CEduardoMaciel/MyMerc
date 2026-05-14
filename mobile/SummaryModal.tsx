@@ -3,6 +3,7 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { styles } from './app/(tabs)/style';
 import { SummaryData } from './useConfirmationLogic';
+import { useAuthAndDataLoading } from './useAuthAndDataLoading';
 
 interface SummaryModalProps {
   visible: boolean;
@@ -20,25 +21,31 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
   onSaveQuickList,
 }) => {
   if (!summary) return null;
+  const { settings } = useAuthAndDataLoading();
+  const isDark = settings.theme === 'dark';
+  const theme = {
+    background: isDark ? '#1E1E1E' : '#fff',
+    text: isDark ? '#D4D4D4' : '#333',
+    title: isDark ? '#4CAF50' : '#1B5E20',
+    card: isDark ? '#2D2D2D' : '#FFF3E0',
+    accent: '#4CAF50',
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={localStyles.modalOverlay}>
-        <View style={localStyles.modalContent}>
+        <View style={[localStyles.modalContent, { backgroundColor: theme.background }]}>
           <Text style={[styles.title, {
             fontSize: 24,
             fontWeight: '900',
-            color: '#1B5E20',
-            letterSpacing: -1,
-            textShadowColor: 'rgba(255, 255, 255, 0.8)',
-            textShadowOffset: { width: 0, height: 0 },
-            textShadowRadius: 10
+            color: theme.title,
+            letterSpacing: -1
           }]}>Resumo das Compras</Text>
-          <Text style={{ fontSize: 16, marginBottom: 5 }}>Total de itens na lista: {summary.totalItems}</Text>
-          <Text style={{ fontSize: 16, marginBottom: 5 }}>Itens comprados: {summary.confirmedItems}</Text>
+          <Text style={{ fontSize: 16, marginBottom: 5, color: theme.text }}>Total de itens na lista: {summary.totalItems}</Text>
+          <Text style={{ fontSize: 16, marginBottom: 5, color: theme.text }}>Itens comprados: {summary.confirmedItems}</Text>
           
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
-            <Text style={{ fontSize: 16 }}>Itens não comprados: {summary.notPurchasedItemsCount}</Text>
+            <Text style={{ fontSize: 16, color: theme.text }}>Itens não comprados: {summary.notPurchasedItemsCount}</Text>
             {summary.notPurchasedItemsCount > 0 && (
               <TouchableOpacity 
                 onPress={async () => {
@@ -49,18 +56,18 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
                     }
                   }
                 }}
-                style={{ padding: 6, backgroundColor: '#FFF3E0', borderRadius: 10, marginLeft: 10 }}
+                style={{ padding: 6, backgroundColor: theme.card, borderRadius: 10, marginLeft: 10 }}
               >
                 <MaterialIcons name="flash-on" size={22} color="#EF6C00" />
               </TouchableOpacity>
             )}
           </View>
 
-          <Text style={{ fontSize: 16, marginBottom: 15 }}>Itens restantes: {summary.remainingItems}</Text>
+          <Text style={{ fontSize: 16, marginBottom: 15, color: theme.text }}>Itens restantes: {summary.remainingItems}</Text>
 
           <View style={{ width: '100%', gap: 10 }}>
-            <TouchableOpacity style={[styles.addBtn, { backgroundColor: '#4CAF50' }]} onPress={onGoHome}>
-              <Text style={styles.addBtnText}>Reiniciar e Sair</Text>
+            <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.accent }]} onPress={onGoHome}>
+              <Text style={styles.addBtnText}>Reiniciar</Text>
             </TouchableOpacity>
           </View>
         </View>

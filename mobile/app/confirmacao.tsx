@@ -14,6 +14,7 @@ import { NotPurchasedModal } from '../NotPurchasedModal';
 import { ActionButton } from '../ActionButton'; 
 import { GroupSelectionModal } from '../GroupSelectionModal'; // Importar GroupSelectionModal
 import { useConfirmationLogic } from '../useConfirmationLogic';
+import { useAuthAndDataLoading } from '../useAuthAndDataLoading';
 
 // Habilita animações de layout no Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -27,6 +28,22 @@ export default function ConfirmacaoScreen() {
 
   const router = useRouter();
   const { sortBy } = useLocalSearchParams<{ sortBy: 'none' | 'alphabetical' }>();
+  const { settings, setItems } = useAuthAndDataLoading();
+
+  const isDark = settings.theme === 'dark';
+  const theme = {
+    background: isDark ? '#1E1E1E' : '#f5f5f5',
+    surface: isDark ? '#252526' : '#fff',
+    text: isDark ? '#D4D4D4' : '#333',
+    title: isDark ? '#4CAF50' : '#1B5E20',
+    subtitle: isDark ? '#858585' : '#666',
+    inputBg: isDark ? '#3C3C3C' : '#fff',
+    inputBorder: isDark ? '#333' : '#ddd',
+    cardBorder: isDark ? '#333' : '#eee',
+    headerBg: isDark ? '#2D2D2D' : '#f1f8e9',
+    headerBorder: isDark ? '#4CAF50' : '#1B5E20',
+    modalBg: isDark ? '#1E1E1E' : '#fff',
+  };
 
   const {
     shoppingList,
@@ -84,14 +101,14 @@ export default function ConfirmacaoScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }]}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }]}>
         <View style={{ marginBottom: 20 }}>
           <Logo />
         </View>
         <ActivityIndicator size="large" color="#4CAF50" />
         <Text style={{ 
           marginTop: 15, 
-          color: '#1B5E20', 
+          color: theme.title, 
           fontWeight: '900', 
           fontSize: 16,
           textTransform: 'uppercase'
@@ -115,7 +132,7 @@ export default function ConfirmacaoScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingTop: 10 }}>
         <Logo />
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -143,11 +160,8 @@ export default function ConfirmacaoScreen() {
           marginBottom: 0,
           fontSize: 24, 
           fontWeight: '900', 
-          color: '#1B5E20', 
-          letterSpacing: -1,
-          textShadowColor: 'rgba(255, 255, 255, 0.8)',
-          textShadowOffset: { width: 0, height: 0 },
-          textShadowRadius: 10 
+          color: theme.title, 
+          letterSpacing: -1
         }]}>Itens para Compra ({totalActiveItems})</Text>
         
         <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -155,7 +169,7 @@ export default function ConfirmacaoScreen() {
             onPress={() => setIsTempAddModalVisible(true)} 
             style={{ 
               padding: 8, 
-              backgroundColor: '#4CAF50', 
+              backgroundColor: theme.title, 
               borderRadius: 12,
               elevation: 4,
               shadowColor: '#000',
@@ -172,12 +186,12 @@ export default function ConfirmacaoScreen() {
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => toggleAllGroups(!anyExpanded)} 
-            style={{ padding: 6, backgroundColor: '#E8F5E9', borderRadius: 10 }}
+            style={{ padding: 6, backgroundColor: theme.headerBg, borderRadius: 10 }}
           >
             <MaterialIcons 
               name={anyExpanded ? "unfold-less" : "unfold-more"} 
               size={24} 
-              color="#1B5E20" 
+              color={theme.title} 
             />
           </TouchableOpacity>
         </View>
@@ -190,20 +204,20 @@ export default function ConfirmacaoScreen() {
           if (row.type === 'header') {
             return (
               <TouchableOpacity onPress={() => toggleGroup(row.grupo)} style={{
-                backgroundColor: '#f1f8e9',
+                backgroundColor: theme.headerBg,
                 paddingVertical: 4,
                 paddingHorizontal: 10,
                 marginTop: 12,
                 marginBottom: 6,
                 borderRadius: 6,
                 borderLeftWidth: 4,
-                borderLeftColor: '#1B5E20',
+                borderLeftColor: theme.headerBorder,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 8
               }}>
-                <MaterialIcons name={groupIcons[row.grupo]} size={18} color="#1B5E20" />
-                <Text style={{ fontWeight: '900', color: '#1B5E20', textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>
+                <MaterialIcons name={groupIcons[row.grupo]} size={18} color={theme.title} />
+                <Text style={{ fontWeight: '900', color: theme.title, textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5 }}>
                   {row.grupo} ({row.count})
                 </Text>
                 <MaterialIcons
@@ -219,8 +233,8 @@ export default function ConfirmacaoScreen() {
             return (
               <View style={[
                 styles.itemContainer,
-                (item.status === 'confirmed' || item.isConfirming) ? { backgroundColor: '#d4edda', borderColor: '#c3e6cb' } : {},
-                { padding: 8, marginBottom: 6 }
+                (item.status === 'confirmed' || item.isConfirming) ? { backgroundColor: isDark ? '#1B3C24' : '#d4edda', borderColor: isDark ? '#2E7D32' : '#c3e6cb' } : { backgroundColor: theme.surface, borderColor: theme.cardBorder },
+                { padding: 8, marginBottom: 6, borderLeftWidth: 0 }
               ]}>
                 <ConfirmationOverlay isConfirmed={item.status === 'confirmed'} isConfirming={item.isConfirming} />
                 <View style={styles.itemContent}>
@@ -228,15 +242,15 @@ export default function ConfirmacaoScreen() {
                     <Text style={[
                       styles.itemText,
                       { fontSize: 15 },
-                      (item.status === 'confirmed' || item.isConfirming) && { color: '#155724', fontWeight: item.status === 'confirmed' ? 'bold' : 'normal' }
+                      (item.status === 'confirmed' || item.isConfirming) ? { color: isDark ? '#81C784' : '#155724', fontWeight: item.status === 'confirmed' ? 'bold' : 'normal' } : { color: theme.text }
                     ]}>
                       {item.isTemp && <MaterialIcons name="star-outline" size={14} color="#FF9800" />} {item.name}
                     </Text>
                     <View style={{ marginTop: 2 }}>
                       <Text style={[
                         styles.itemText,
-                        { fontSize: 13, color: '#666', fontWeight: 'bold' },
-                        (item.status === 'confirmed' || item.isConfirming) && { color: '#155724' }
+                        { fontSize: 13, color: theme.subtitle, fontWeight: 'bold' },
+                        (item.status === 'confirmed' || item.isConfirming) && { color: isDark ? '#81C784' : '#155724' }
                       ]}>Qtd: {formatDecimal(item.quantidade)}</Text>
                     </View>
                   </View>
@@ -260,7 +274,7 @@ export default function ConfirmacaoScreen() {
             );
           }
         }}
-        ListEmptyComponent={<Text style={{ textAlign: 'center', marginVertical: 10 }}>Nenhum item pendente.</Text>}
+        ListEmptyComponent={<Text style={{ textAlign: 'center', marginVertical: 10, color: theme.subtitle }}>Nenhum item pendente.</Text>}
       />
 
       {/* Botões de Ação */}
@@ -276,16 +290,17 @@ export default function ConfirmacaoScreen() {
       {/* Modal para Adicionar Item Temporário */}
       <Modal visible={isTempAddModalVisible} transparent animationType="slide">
         <View style={localStyles.modalOverlay}>
-          <View style={[localStyles.modalContent, { width: '85%' }]}>
-            <Text style={[styles.title, { fontSize: 22, color: '#1B5E20', marginBottom: 10 }]}>Adicionar Item Extra</Text>
-            <Text style={{ fontSize: 12, color: '#666', marginBottom: 15, textAlign: 'center' }}>
+          <View style={[localStyles.modalContent, { width: '85%', backgroundColor: theme.modalBg }]}>
+            <Text style={[styles.title, { fontSize: 22, color: theme.title, marginBottom: 10 }]}>Adicionar Item Extra</Text>
+            <Text style={{ fontSize: 12, color: theme.subtitle, marginBottom: 15, textAlign: 'center' }}>
               Este item é temporário e não afeta sua lista original.
             </Text>
             <View style={{ width: '100%', zIndex: 12 }}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
                 placeholder="Nome do produto"
                 value={tempInput}
+                placeholderTextColor={isDark ? '#858585' : '#999'}
                 onChangeText={(value) => {
                   setTempInput(value);
                   setShowTempSuggestions(true);
@@ -293,17 +308,17 @@ export default function ConfirmacaoScreen() {
                 onFocus={() => setShowTempSuggestions(true)}
               />
               {showTempSuggestions && filteredTempSuggestions.length > 0 && tempInput.trim() !== '' && (
-                <View style={[styles.suggestionBox, { position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'white', zIndex: 13, elevation: 5 }]}>
+                <View style={[styles.suggestionBox, { position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: theme.surface, borderColor: theme.inputBorder, zIndex: 13, elevation: 5 }]}>
                   {filteredTempSuggestions.map(({ item }) => (
                     <TouchableOpacity
                       key={item}
-                      style={styles.suggestionItem}
+                      style={[styles.suggestionItem, { borderBottomColor: theme.cardBorder }]}
                       onPress={() => {
                         setTempInput(item);
                         setShowTempSuggestions(false);
                         tempQuantidadeInputRef.current?.focus();
                       }}>
-                      <Text>{item}</Text>
+                      <Text style={{ color: theme.text }}>{item}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -311,9 +326,10 @@ export default function ConfirmacaoScreen() {
             </View>
             <TextInput
               ref={tempQuantidadeInputRef}
-              style={[styles.input, { width: '100%', marginTop: 10 }]}
+              style={[styles.input, { width: '100%', marginTop: 10, backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
               placeholder="Quantidade"
               value={tempQuantidade}
+              placeholderTextColor={isDark ? '#858585' : '#999'}
               onChangeText={setTempQuantidade}
               onFocus={() => setShowTempSuggestions(false)}
               keyboardType="numeric"
@@ -342,19 +358,16 @@ export default function ConfirmacaoScreen() {
 
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={localStyles.modalOverlay}>
-          <View style={localStyles.modalContent}>
+          <View style={[localStyles.modalContent, { backgroundColor: theme.modalBg }]}>
             <Text style={[styles.title, { 
               fontSize: 24, 
               fontWeight: '900', 
-              color: '#1B5E20', 
-              letterSpacing: -1,
-              textShadowColor: 'rgba(255, 255, 255, 0.8)',
-              textShadowOffset: { width: 0, height: 0 },
-              textShadowRadius: 10 
+              color: theme.title, 
+              letterSpacing: -1
             }]}>Editar Quantidade</Text>
-            <Text style={{ marginBottom: 10 }}>{editingItem?.name}</Text>
+            <Text style={{ marginBottom: 10, color: theme.text }}>{editingItem?.name}</Text>
             <TextInput
-              style={[styles.input, { width: '100%' }]}
+              style={[styles.input, { width: '100%', backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
               value={newQuantity}
               onChangeText={setNewQuantity}
               keyboardType="numeric"
@@ -380,15 +393,16 @@ export default function ConfirmacaoScreen() {
 
       <Modal visible={isSaveModalVisible} transparent animationType="slide">
         <View style={localStyles.modalOverlay}>
-          <View style={localStyles.modalContent}>
-            <Text style={[styles.title, { fontSize: 22, color: '#1B5E20' }]}>Salvar Itens Comprados</Text>
-            <Text style={{ marginBottom: 15, textAlign: 'center', color: '#666' }}>
+          <View style={[localStyles.modalContent, { backgroundColor: theme.modalBg }]}>
+            <Text style={[styles.title, { fontSize: 22, color: theme.title }]}>Salvar Itens Comprados</Text>
+            <Text style={{ marginBottom: 15, textAlign: 'center', color: theme.subtitle }}>
               Dê um nome para salvar apenas os itens que você marcou como comprados nesta lista.
             </Text>
             <TextInput
-              style={[styles.input, { width: '100%' }]}
+              style={[styles.input, { width: '100%', backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }]}
               value={saveName}
               onChangeText={setSaveName}
+              placeholderTextColor={isDark ? '#858585' : '#999'}
               placeholder="Ex: Lista 1"
               autoFocus
             />
@@ -420,6 +434,7 @@ export default function ConfirmacaoScreen() {
           const user = creds ? JSON.parse(creds).u : 'admin';
           const activeKey = getActiveListKey(user);
           await SecureStore.deleteItemAsync(activeKey); 
+          setItems([]); // Limpa o estado global para que a tela inicial abra sem itens
           setShowSummaryModal(false); 
           router.replace('/'); 
         }}

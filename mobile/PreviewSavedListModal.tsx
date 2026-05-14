@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons'; // Assuming this path is cor
 import { styles } from './app/(tabs)/style';
 import { formatDecimal } from './app/utils';
 import { Item } from './constants'; // Importa a interface Item centralizada
+import { useAuthAndDataLoading } from './useAuthAndDataLoading';
 
 interface PreviewSavedListModalProps {
   visible: boolean;
@@ -20,41 +21,52 @@ export const PreviewSavedListModal: React.FC<PreviewSavedListModalProps> = ({
 }) => {
   if (!previewData) return null;
 
+  const { settings } = useAuthAndDataLoading();
+  const isDark = settings.theme === 'dark';
+  const theme = {
+    modalBg: isDark ? '#1E1E1E' : '#fff',
+    text: isDark ? '#D4D4D4' : '#333',
+    title: isDark ? '#4CAF50' : '#1B5E20',
+    border: isDark ? '#333' : '#eee',
+    buttonCancel: isDark ? '#333' : '#ccc',
+    buttonAccent: isDark ? '#4CAF50' : '#4CAF50',
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={localStyles.modalOverlay}>
-        <View style={[localStyles.modalContent, { maxHeight: '60%', width: '80%', padding: 15 }]}>
-          <Text style={{ fontSize: 18, fontWeight: '900', color: '#1B5E20', marginBottom: 10, textAlign: 'center' }}>
+        <View style={[localStyles.modalContent, { maxHeight: '60%', width: '80%', padding: 15, backgroundColor: theme.modalBg }]}>
+          <Text style={{ fontSize: 18, fontWeight: '900', color: theme.title, marginBottom: 10, textAlign: 'center' }}>
             {previewData.name}
           </Text>
 
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#eee', marginBottom: 5 }}>
-            <Text style={{ fontWeight: 'bold', color: '#1B5E20', flex: 1 }}>Produtos</Text>
-            <Text style={{ fontWeight: 'bold', color: '#1B5E20' }}>Quantidades</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: theme.border, marginBottom: 5 }}>
+            <Text style={{ fontWeight: 'bold', color: theme.title, flex: 1 }}>Produtos</Text>
+            <Text style={{ fontWeight: 'bold', color: theme.title }}>Quantidades</Text>
           </View>
 
           <FlatList
             data={previewData.items}
             keyExtractor={item => item.id}
             style={{ width: '100%', marginBottom: 15 }}
-            renderItem={({ item }) => (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
-                <Text style={{ color: '#333', fontSize: 14, flex: 1 }}>{item.name}</Text>
-                <Text style={{ color: '#666', fontSize: 14, fontWeight: 'bold' }}>{formatDecimal(item.quantidade)}</Text>
+            renderItem={({ item }) => ( // @ts-ignore
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+                <Text style={{ color: theme.text, fontSize: 14, flex: 1 }}>{item.name}</Text>
+                <Text style={{ color: theme.text, fontSize: 14, fontWeight: 'bold' }}>{formatDecimal(item.quantidade)}</Text>
               </View>
             )}
           />
 
           <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
             <TouchableOpacity
-              style={[styles.addBtn, { flex: 1, backgroundColor: '#ccc', height: 45 }]}
+              style={[styles.addBtn, { flex: 1, backgroundColor: theme.buttonCancel, height: 45 }]}
               onPress={onCancel}
             >
               <Text style={styles.addBtnText}>Voltar</Text>
             </TouchableOpacity>
             {onLoadList && (
               <TouchableOpacity
-                style={[styles.addBtn, { flex: 1, backgroundColor: '#4CAF50', height: 45 }]}
+                style={[styles.addBtn, { flex: 1, backgroundColor: theme.buttonAccent, height: 45 }]}
                 onPress={() => onLoadList(previewData.items)}
               >
                 <Text style={styles.addBtnText}>Usar Lista</Text>

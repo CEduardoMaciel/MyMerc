@@ -4,6 +4,7 @@ import { getItemAsync, setItemAsync } from 'expo-secure-store';
 import { USER_CRED_KEY, getActiveListKey, getSavedKey, getQuickListsKey, formatDecimal } from './app/utils'; // Import formatDecimal
 import { Item as BaseItem } from './constants'; 
 import { sugestoes } from './sugestoes'; // Importar sugestoes
+import { useAuthAndDataLoading } from './useAuthAndDataLoading';
 
 // Extend Item interface for confirmation screen specific properties
 interface Item extends BaseItem {
@@ -108,6 +109,8 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
   const [isTempGroupModalVisible, setTempGroupModalVisible] = useState(false);
   const [pendingTempItemName, setPendingTempItemName] = useState('');
   const [pendingTempItemQuantity, setPendingTempItemQuantity] = useState('');
+
+  const { setQuickLists } = useAuthAndDataLoading();
 
   useEffect(() => {
     const loadItems = async () => {
@@ -396,12 +399,14 @@ export const useConfirmationLogic = ({ sortBy, router }: UseConfirmationLogicPro
       const newList = {
         id: Date.now().toString(),
         date: new Date().toLocaleDateString('pt-BR'),
+        timestamp: Date.now(),
         items: summaryData.notPurchasedItems.map(i => ({ ...i, status: 'pending', isConfirmed: false, isTemp: false })),
       };
 
       quickLists = [newList, ...quickLists];
 
       await setItemAsync(key, JSON.stringify(quickLists));
+      setQuickLists(quickLists); // Atualiza o estado global imediatamente
       Alert.alert('Sucesso', 'Listagem rápida de itens não comprados gerada!');
       return true;
     } catch (error) {

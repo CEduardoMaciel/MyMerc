@@ -1,7 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react';
 import { getItemAsync, setItemAsync, deleteItemAsync } from 'expo-secure-store';
 import { AUTH_KEY, USER_CRED_KEY, getActiveListKey, getSavedKey, getQuickListsKey } from './app/utils';
 import { Item } from './constants'; // Assuming Item interface is shared
+
+export interface UserSettings {
+  theme: 'light' | 'dark';
+  expirationDays: number;
+}
 
 interface AuthAndDataLoadingResult {
   isLoggedIn: boolean;
@@ -17,9 +22,13 @@ interface AuthAndDataLoadingResult {
   quickLists: { id: string; date: string; items: Item[]; }[];
   setQuickLists: React.Dispatch<React.SetStateAction<{ id: string; date: string; items: Item[]; }[]>>;
   handleDeleteQuickList: (id: string) => Promise<void>;
+  settings: UserSettings;
+  updateSettings: (newSettings: UserSettings) => Promise<void>;
 }
 
-export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
+const AuthAndDataContext = createContext<AuthAndDataLoadingResult | null>(null);
+
+export const AuthAndDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [userName, setUserName] = useState('');
@@ -29,10 +38,18 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
   const [items, setItems] = useState<Item[]>([]);
   const [savedPurchases, setSavedPurchases] = useState<{ name: string; items: Item[]; }[]>([]);
   const [quickLists, setQuickLists] = useState<{ id: string; date: string; items: Item[]; }[]>([]);
+  const GLOBAL_SETTINGS_KEY = 'settings_global';
+  const [settings, setSettings] = useState<UserSettings>({
+    theme: 'light',
+    expirationDays: 7,
+  });
 
   useEffect(() => {
     const loadAuth = async () => {
       try {
+        const storedSettings = await getItemAsync(GLOBAL_SETTINGS_KEY);
+        if (storedSettings) setSettings(JSON.parse(storedSettings));
+
         const auth = await getItemAsync(AUTH_KEY);
 
         if (auth === 'true') {
@@ -168,7 +185,16 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
     }
   };
 
-  return {
+  const updateSettings = async (newSettings: UserSettings) => {
+    try {
+      setSettings(newSettings);
+      await setItemAsync(GLOBAL_SETTINGS_KEY, JSON.stringify(newSettings));
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
+    }
+  };
+
+  const value = {
     isLoggedIn,
     isAuthLoading,
     userName,
@@ -182,5 +208,19 @@ export const useAuthAndDataLoading = (): AuthAndDataLoadingResult => {
     quickLists,
     setQuickLists,
     handleDeleteQuickList,
+    settings,
+    updateSettings,
   };
+
+  return (
+    <AuthAndDataContext.Provider value={value}>
+      {children}
+    </AuthAndDataContext.Provider>
+  );
+};
+
+export const useAuthAndDataLoading = () => {
+  const context = useContext(AuthAndDataContext);
+  if (!context) throw new Error('useAuthAndDataLoading deve ser usado dentro de um AuthAndDataProvider');
+  return context;
 };
