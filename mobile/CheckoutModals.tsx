@@ -34,8 +34,8 @@ export const EditQuantityModal = ({ visible, item, quantity, onClose, onSave, on
           <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: theme.cancelBtn }]} onPress={onClose}>
             <Text style={styles.addBtnText}>Cancelar</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.addBtn, { flex: 1 }]} onPress={onSave}>
-            <Text style={[styles.addBtnText, { backgroundColor: theme.accent }]} >Salvar</Text>
+          <TouchableOpacity style={[styles.addBtn, { flex: 1, backgroundColor: theme.accent }]} onPress={onSave}>
+            <Text style={styles.addBtnText}>Salvar</Text>
           </TouchableOpacity>
         </View>
       </View>

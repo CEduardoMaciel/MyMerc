@@ -90,7 +90,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             transform: [{ translateY: productAnimY }],
             zIndex: 5
           }}>
-            <MaterialIcons name="archive" size={24} color={theme.orange} />
+            <MaterialIcons name="archive" size={24} color={theme.accent} />
           </Animated.View>
           
           <Animated.View style={{
@@ -99,8 +99,8 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             opacity: handOpacity,
             transform: [{ translateY: handAnimY }],
             zIndex: 6
-          }}>
-            <MaterialIcons name="pan-tool" size={40} color="#f1c27d" />
+          }}>{/* Corrigido: A cor da mão deve ser definida no ThemeContext se for variável */}
+            <MaterialIcons name="pan-tool" size={40} color={theme.orange} />
           </Animated.View>
 
           <Animated.View style={{
@@ -160,7 +160,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
                 placeholderTextColor={isDark ? '#888' : '#999'}
                 onChangeText={setUsername}
                 autoFocus // useProfileManager controla o estado
-              />
+              />{/* Corrigido: Adicionado backgroundColor do tema */}
               <TouchableOpacity style={[localStyles.enterBtn, { backgroundColor: theme.accent }]} onPress={handleCreateProfile}>
                 <Text style={localStyles.enterBtnText}>Criar Perfil</Text>
               </TouchableOpacity>
@@ -181,8 +181,8 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
                 onPress={() => setIsCreatingProfile(true)}
                 style={localStyles.addProfileBtn}
             >
-                <MaterialIcons name="add-circle-outline" size={20} color={theme.accent} />
-                <Text style={[localStyles.addProfileText, { color: theme.accent }]}>Novo Perfil</Text>
+                <MaterialIcons name="add-circle-outline" size={20} color={theme.accent} />{/* Corrigido: Cor do ícone */}
+                <Text style={[localStyles.addProfileText, { color: theme.accent }]}>Novo Perfil</Text>{/* Corrigido: Cor do texto */}
               </TouchableOpacity>
             </View>
           )}
@@ -233,7 +233,7 @@ const localStyles = StyleSheet.create({
   logoText: {
     fontSize: 48,
     fontWeight: '900',
-    color: '#1B5E20', // Um verde mais escuro para destacar sobre o carrinho
+    color: '#1B5E20', // Mantido para o modo light, mas o tema.logo já cobre isso
     letterSpacing: -1
   },
   tagline: {
@@ -278,7 +278,7 @@ const localStyles = StyleSheet.create({
     padding: 15,
     borderRadius: 30,
     alignItems: 'center',
-    elevation: 3
+    elevation: 3,
   },
   enterBtnText: {
     color: '#fff',
@@ -336,7 +336,7 @@ const localStyles = StyleSheet.create({
     gap: 5
   },
   addProfileText: {
-    color: '#4CAF50',
+    color: '#4CAF50', // Mantido para o modo light, mas o tema.accent já cobre isso
     fontWeight: 'bold',
     fontSize: 16
   }

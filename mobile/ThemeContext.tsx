@@ -20,6 +20,7 @@ export const themeColors = {
     road: '#eee',
     logo: '#1B5E20',
     cancelBtn: '#F44336',
+    addBtnText: '#fff', // Cor do texto dos botões de ação
     buttonBlue: '#2196F3',
     orange: '#FF9800',
     expiredBg: '#FFCDD2',
@@ -46,6 +47,7 @@ export const themeColors = {
     road: '#333',
     logo: '#A5D6A7',
     cancelBtn: '#F44336',
+    addBtnText: '#fff', // Cor do texto dos botões de ação
     buttonBlue: '#2196F3',
     orange: '#FF9800',
     expiredBg: '#FFCDD2',

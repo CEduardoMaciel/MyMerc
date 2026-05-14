@@ -215,7 +215,7 @@ export default function ConfirmacaoScreen() {
                     <Text style={[
                       styles.itemText,
                       { fontSize: 15 },
-                      (item.status === 'confirmed' || item.isConfirming) ? { color: isDark ? '#81C784' : '#155724', fontWeight: item.status === 'confirmed' ? 'bold' : 'normal' } : { color: theme.text }
+                      (item.status === 'confirmed' || item.isConfirming) ? { color: isDark ? theme.accent : '#155724', fontWeight: item.status === 'confirmed' ? 'bold' : 'normal' } : { color: theme.text }
                     ]}>
                       {item.isTemp && <MaterialIcons name="star-outline" size={14} color="#FF9800" />} {item.name}
                     </Text>
@@ -223,7 +223,7 @@ export default function ConfirmacaoScreen() {
                       <Text style={[
                         styles.itemText,
                         { fontSize: 13, color: theme.subtitle, fontWeight: 'bold' },
-                        (item.status === 'confirmed' || item.isConfirming) && { color: isDark ? '#81C784' : '#155724' }
+                        (item.status === 'confirmed' || item.isConfirming) && { color: isDark ? theme.accent : '#155724' }
                       ]}>Qtd: {formatDecimal(item.quantidade)}</Text>
                     </View>
                   </View>

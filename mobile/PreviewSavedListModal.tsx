@@ -51,14 +51,14 @@ export const PreviewSavedListModal: React.FC<PreviewSavedListModalProps> = ({
 
           <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
             <TouchableOpacity
-              style={[styles.addBtn, { flex: 1, backgroundColor: theme.cancelBtn, height: 45 }]}
+              style={[styles.addBtn, { flex: 1, backgroundColor: theme.buttonBlue, height: 45, justifyContent: 'center', marginBottom: 0 }]}
               onPress={onCancel}
             >
               <Text style={styles.addBtnText}>Voltar</Text>
             </TouchableOpacity>
             {onLoadList && (
               <TouchableOpacity
-                style={[styles.addBtn, { flex: 1, backgroundColor: theme.accent, height: 45 }]}
+                style={[styles.addBtn, { flex: 1, backgroundColor: theme.accent, height: 45, justifyContent: 'center', marginBottom: 0 }]}
                 onPress={() => onLoadList(previewData.items)}
               >
                 <Text style={styles.addBtnText}>Usar Lista</Text>

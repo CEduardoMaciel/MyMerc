@@ -226,8 +226,8 @@ export default function HomeScreen() {
               color={sortBy === 'alphabetical' ? theme.accent : theme.text}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDeleteAll} style={{ padding: 5 }}>
-            <MaterialIcons name="delete-sweep" size={28} color="#F44336" />
+          <TouchableOpacity onPress={handleDeleteAll} style={{ padding: 5, borderRadius: 5 }}>
+            <MaterialIcons name="delete-sweep" size={28} color={theme.cancelBtn} />
           </TouchableOpacity>
         </View>
       </View>
@@ -369,10 +369,10 @@ export default function HomeScreen() {
                     <Text style={{ color: theme.subtitle, fontSize: 12 }}>{item.items.length} produtos pendentes</Text>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity onPress={() => setPreviewQuickList(item)}>
-                      <MaterialIcons name="visibility" size={28} color="#2196F3" />
+                    <TouchableOpacity onPress={() => setPreviewQuickList(item)} style={{ padding: 5 }}>
+                      <MaterialIcons name="visibility" size={28} color={theme.buttonBlue} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity style={{ padding: 5 }} onPress={() => { // @ts-ignore
                       const loadQuickList = () => {
                         // Garante a unicidade dos itens (por nome, ignorando case)
                         const uniqueItems = item.items.filter((val, index, self) =>
@@ -399,7 +399,7 @@ export default function HomeScreen() {
                         loadQuickList();
                       }
                     }}>
-                      <MaterialIcons name="add-task" size={28} color="#4CAF50" />
+                      <MaterialIcons name="add-task" size={28} color={theme.accent} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleDeleteQuickList(item.id)} style={{ padding: 5 }}>
                       <MaterialIcons name="delete-outline" size={28} color={theme.cancelBtn} />
@@ -412,7 +412,7 @@ export default function HomeScreen() {
             />
             
             <TouchableOpacity
-              style={[styles.addBtn, { marginTop: 15, backgroundColor: theme.cancelBtn }]}
+              style={[styles.addBtn, { marginTop: 15, backgroundColor: theme.cancelBtn, width: '100%' }]}
               onPress={() => setIsQuickListsModalVisible(false)}
             >
               <Text style={styles.addBtnText}>Cancelar</Text>
